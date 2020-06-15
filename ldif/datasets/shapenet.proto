@@ -1,0 +1,212 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+syntax = "proto3";
+
+package ldif.shapenet;
+
+message ShapeNetVolume128 {
+  repeated float volume_64 = 1
+      [packed = true, (numproto.options).shape = "64, 64, 64, 1"];
+  repeated float volume_128 = 2
+      [packed = true, (numproto.options).shape = "128, 128, 128, 1"];
+  repeated float mesh_renders = 3
+      [packed = true, (numproto.options).shape = "24, 137, 137, 4"];
+  repeated float surface_point_samples = 4
+      [packed = true, (numproto.options).shape = "1000000, 6"];
+}
+
+message ShapeNetVolume64 {
+  repeated float volume_64 = 1
+      [packed = true, (numproto.options).shape = "64, 64, 64, 1"];
+  repeated float mesh_renders = 2
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 6"];
+}
+
+message ShapeNetNamedVolume64 {
+  repeated float volume_64 = 1
+      [packed = true, (numproto.options).shape = "64, 64, 64, 1"];
+  repeated float mesh_renders = 2
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  string mesh_name = 4;
+}
+
+message ShapeNetVisVolume64 {
+  repeated float volume_64 = 1
+      [packed = true, (numproto.options).shape = "64, 64, 64, 1"];
+  repeated float mesh_renders = 2
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  string mesh_name = 4;
+  repeated float surface_renders = 5
+      [packed = true, (numproto.options).shape = "2, 256, 256, 4"];
+}
+
+message ShapeNetDepthVolume64 {
+  repeated float volume_64 = 1
+      [packed = true, (numproto.options).shape = "64, 64, 64, 1"];
+  repeated float mesh_renders = 2
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  string mesh_name = 4;
+  repeated float surface_renders = 5
+      [packed = true, (numproto.options).shape = "2, 256, 256, 4"];
+  repeated float depth_renders = 6
+      [packed = true, (numproto.options).shape = "24, 120, 160, 4"];
+}
+
+message ShapeNetSparseSmall {
+  repeated float mesh_renders = 1
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 2
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  repeated float bounding_box_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 4
+      [packed = true, (numproto.options).shape = "12, 120, 160, 1"];
+  string mesh_name = 5;
+}
+
+message ShapeNetNSSSparseSmall {
+  repeated float mesh_renders = 1
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 2
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  repeated float bounding_box_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 4
+      [packed = true, (numproto.options).shape = "12, 120, 160, 1"];
+  string mesh_name = 5;
+  repeated float near_surface_samples = 6
+      [packed = true, (numproto.options).shape = "100000, 4"];
+}
+
+message ShapeNetNSSDodecaSparseSmall {
+  repeated float mesh_renders = 1
+      [packed = true, (numproto.options).shape = "24, 137, 137, 4"];
+  repeated float surface_point_samples = 2
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  repeated float bounding_box_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 4
+      [packed = true, (numproto.options).shape = "20, 137, 137, 1"];
+  string mesh_name = 5;
+  repeated float near_surface_samples = 6
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float lum_renders = 7
+      [packed = true, (numproto.options).shape = "20, 137, 137, 1"];
+}
+
+message ShapeNetNSSDodecaSparseMedium {
+  repeated float mesh_renders = 1
+      [packed = true, (numproto.options).shape = "24, 137, 137, 4"];
+  repeated float surface_point_samples = 2
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  repeated float bounding_box_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 4
+      [packed = true, (numproto.options).shape = "20, 224, 224, 1"];
+  string mesh_name = 5;
+  repeated float near_surface_samples = 6
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float lum_renders = 7
+      [packed = true, (numproto.options).shape = "20, 224, 224, 1"];
+}
+
+message ShapeNetNSSDodecaSparseLRGMediumSlim {
+  repeated float bounding_box_samples = 1
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 2
+      [packed = true, (numproto.options).shape = "20, 224, 224, 1"];
+  string mesh_name = 3;
+  repeated float near_surface_samples = 4
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float grid = 5
+      [packed = true, (numproto.options).shape = "32, 32, 32"];
+  repeated float world2grid = 6
+      [packed = true, (numproto.options).shape = "4, 4"];
+}
+
+message ShapeNetNSSDodecaSparseLRGMediumSlimPC {
+  repeated float bounding_box_samples = 1
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 2
+      [packed = true, (numproto.options).shape = "20, 224, 224, 1"];
+  string mesh_name = 3;
+  repeated float near_surface_samples = 4
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float grid = 5
+      [packed = true, (numproto.options).shape = "32, 32, 32"];
+  repeated float world2grid = 6
+      [packed = true, (numproto.options).shape = "4, 4"];
+  repeated float surface_point_samples = 7
+      [packed = true, (numproto.options).shape = "10000, 6"];
+}
+
+message ShapeNetOneImXyzPC {
+  repeated float bounding_box_samples = 1
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_render = 2
+      [packed = true, (numproto.options).shape = "224, 224, 1"];
+  string mesh_name = 3;
+  repeated float near_surface_samples = 4
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float grid = 5
+      [packed = true, (numproto.options).shape = "32, 32, 32"];
+  repeated float world2grid = 6
+      [packed = true, (numproto.options).shape = "4, 4"];
+  repeated float surface_point_samples = 7
+      [packed = true, (numproto.options).shape = "10000, 6"];
+  repeated float xyz_render = 8
+      [packed = true, (numproto.options).shape = "224, 224, 3"];
+}
+
+message ShapeNetNSSDodecaSparseLRGMediumSlimPCExtra {
+  repeated float bounding_box_samples = 1
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 2
+      [packed = true, (numproto.options).shape = "20, 224, 224, 1"];
+  string mesh_name = 3;
+  repeated float near_surface_samples = 4
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float grid = 5
+      [packed = true, (numproto.options).shape = "32, 32, 32"];
+  repeated float world2grid = 6
+      [packed = true, (numproto.options).shape = "4, 4"];
+  repeated float surface_point_samples = 7
+      [packed = true, (numproto.options).shape = "10000, 6"];
+  repeated float lum_renders = 8
+      [packed = true, (numproto.options).shape = "20, 224, 224, 1"];
+  repeated float mesh_renders = 9
+      [packed = true, (numproto.options).shape = "24, 137, 137, 4"];
+  repeated float xyz_from_depth = 10
+      [packed = true, (numproto.options).shape = "10000, 3"];
+}
+
+message ShapeNetSparseMedium {
+  repeated float mesh_renders = 1
+      [packed = true, (numproto.options).shape = "6, 137, 137, 4"];
+  repeated float surface_point_samples = 2
+      [packed = true, (numproto.options).shape = "100000, 6"];
+  repeated float bounding_box_samples = 3
+      [packed = true, (numproto.options).shape = "100000, 4"];
+  repeated float depth_renders = 4
+      [packed = true, (numproto.options).shape = "12, 240, 320, 1"];
+  string mesh_name = 5;
+}
