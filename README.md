@@ -8,7 +8,7 @@ Shape](https://arxiv.org/abs/1912.06126)) and SIF ([Learning Shape Templates
 with Structured Implicit Functions](https://arxiv.org/abs/1904.06447)). Note
 that LDIF was previously called Deep Structured Implicit Functions. It contains
 code to reproduce the results of those papers, convert input meshes into the LDIF
-and SIF representations, and visualize and extract meshes from LDIF
+and SIF representations, and visualize and extract meshes.
 representations.
 
 All .py and .sh files in the top-level
@@ -38,8 +38,6 @@ conda activate ldif
 pip install -r requirements.txt
 ```
 
-If you have an anaconda environment, run `conda install --file requirements.txt`.
-
 After this, the python environment should be ready to go.
 
 #### 2. Build GAPS
@@ -54,11 +52,11 @@ to standard OpenGL and GLu library headers (`GL/gl.h`, `GL/glu.h`) (on both linu
 macos), and that OSMesa static libraries can be linked (on linux). If these are
 satisfied, the sudo line can be commented out. Two, it clones the
 [GAPS](https://github.com/tomfunkhouser/gaps) repository from GitHub, make some
-changes, and builds it. It moves the qview folder into the gaps repository. The
-`qview` executable is a C++ program written using GAPS to visualize SIF and LDIF
-representations. Finally, the script compiles all necessary GAPS C++ executables,
-which are called by the python code. If this step was successful, running
-`./gaps_is_installed.sh` should echo `Ready to go!`
+changes, and builds it. It also moves the qview folder into the gaps repository
+and modifies the makefiles. The `qview` executable is a C++ program written using
+GAPS to visualize SIF and LDIF representations. Finally, the script compiles all
+necessary GAPS C++ executables, which are called by the python code. If this step
+was successful, running `./gaps_is_installed.sh` should echo `Ready to go!`
 
 GAPS should compile with no warnings. Please report any warnings by opening a
 GitHub issue- the information would be greatly appreciated.
@@ -102,15 +100,15 @@ dataset doesn't need to have a train, test, and val split, only whichever splits
 you want to use. You could make a dataset with just a test split for a
 comparison, for example. Note that for convenience the code tries to check if
 the class names are wordnet synsets and will convert them to shapenet names
-(i.e. 02691156 -> airplane), if they are (if it can't detect a synset it will
-just use the folder name as the class name).
+(i.e. 02691156 -> airplane) if they are-- if it can't detect a synset it will
+just use the folder name as the class name.
 
 Note that .ply files are required, but the GAPS library provides a shell utility
 for converting between file formats. You can do
 `./ldif/gaps/bin/x86_64/msh2msh mesh.obj mesh.ply` as an example
 conversion, which will read mesh.obj and write a new file mesh.ply to disk.
 
-It is very important that the input meshes be watertight (at training time).
+It is very important that the input meshes be watertight at training time.
 GAPS provides a program msh2df that can do the conversion, if you are not
 interested in exactly replicating the OccNet experiment's process. Here is an
 example command that will make a unit-cube sized mesh watertight:
@@ -236,14 +234,14 @@ Please be aware that not all of the code is tested, and that the unit tests
 aren't well documented. The easiest way to check if the code still works is by
 running `./unit_test.sh`.
 
-### Other code
+## Other code
 
 In addition to the scripts described above, there are also model definitions and
 beam pipelines provided for generating datasets and running inference on a
 larger scale. To use these scripts, it would be necessary to hook up your own
 beam backend.
 
-### TODOS
+## TODOS
 
 This is a preliminary release of the code, and there are a few steps left:
 
