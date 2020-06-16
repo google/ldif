@@ -82,7 +82,6 @@ class R3QuadricSet {
   // Basic data
   RNArray<R3Quadric*> quadrics;
   R3Box bbox;
-  char* filename;
   RNFlags flags;
   OccNet* occnet;
   // std::vector<std::vector<float>> embeddings;

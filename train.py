@@ -104,7 +104,8 @@ flags.DEFINE_boolean('reserve_memory_for_inference_kernel', True,
                      ' when the session is created. The inference CUDA'
                      ' executable requires some memory to run. This flag stops'
                      ' TensorFlow from allocating everything, leaving ~1GB'
-                     ' for the kernel (enough for 512^3 reconstruction).')
+                     ' for the kernel (enough for 512^3 reconstruction).'
+                     ' Automatically disabled on MacOS.')
 
 
 def build_model_config(dataset):
@@ -202,7 +203,7 @@ def main(argv):
   experiment_dir = f'{model_root}/sif-transcoder-{FLAGS.experiment_name}'
   checkpoint_dir = f'{experiment_dir}/1-hparams/train/'
 
-  if FLAGS.reserve_memory_for_inference_kernel:
+  if FLAGS.reserve_memory_for_inference_kernel and sys.platform != "darwin":
     current_free = gpu_util.get_free_gpu_memory(0)
     allowable = current_free - (1024 + 512)  # ~1GB
     allowable_fraction = allowable / current_free

@@ -16,30 +16,54 @@
 set -e
 set -v
 
-# We're going to need these dependencies, start with that.
-sudo apt install mesa-common-dev libglu1-mesa-dev libosmesa6-dev
-
-# If the above command fails, get the GL/gl.h and GL/glu.h headers, delete the
-# above line, and try again.
-
 # CD inside the ldif/ldif python package
 cd ldif
 
 # This should create a gaps/ folder at ldif/ldif/gaps/
-git clone https://github.com/tomfunkhouser/gaps.git
+if [[ -d gaps ]]
+then
+  echo "GAPS has already been cloned to ldif/ldif/gaps, skipping."
+else
+  git clone https://github.com/tomfunkhouser/gaps.git
+fi
+
+# Necessary dependencies:
+# Figure out whether we are on MacOS or Linux:
+if [[ $(uname -s) == Darwin* ]]
+then
+  echo "On MacOS, GL dependencies should have shipped and OSMesa support is disabled."
+else
+  # On linux, the packages need to be installed.
+  sudo apt install mesa-common-dev libglu1-mesa-dev libosmesa6-dev
+fi
+# If the above command fails, get the GL/gl.h and GL/glu.h headers, OSMesa
+# static library (osmesa on macos), delete the above code, and try again.
+
+# Now apply customizations to GAPS:
 
 # This should make a copy of the qview folder at ldif/ldif/gaps/apps/qview/
-cp -R ./qview gaps/apps/
+if [[ -d gaps/apps/qview ]]
+then
+  echo "qview has already been copied into ldif/ldif/gaps/qview, skipping."
+else
+  cp -R ./qview gaps/apps/
+fi
+
+# Everything is local to GAPS from this point:
+cd gaps
+
+# Ptsview and qview aren't built by default, adjust the makefile to build them.
+# sed commands are for script idempotency
+sed -i.bak '/ptsview/d' ./apps/Makefile
+sed -i.bak '/qview/d' ./apps/Makefile
+echo "	cd ptsview; \$(MAKE) \$(TARGET)" >> ./apps/Makefile
+echo "	cd qview; \$(MAKE) \$(TARGET)" >> ./apps/Makefile
 
 # Make GAPS (assuming 8 threads):
-cd gaps
-make mesa -j8
-
-# ptsview isn't made by default, build it:
-cd apps/ptsview
-make mesa -j8
-
-# The GAPS scripts don't know about qview, make it too:
-cd ../qview
-make mesa -j8
-
+# On MacOS, using OSMesa is more difficult, so we don't
+if [[ ! $(uname -s) == Darwin* ]]
+then
+  make mesa -j8
+else
+  make -j8
+fi

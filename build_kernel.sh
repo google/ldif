@@ -12,6 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-nvcc -Xptxas -O3 --gpu-architecture=compute_61 --gpu-code=sm_61 \
-  --ptxas-options=-v -maxrregcount 63 ldif/ldif2mesh/ldif2mesh.cu -o \
-  ldif/ldif2mesh/ldif2mesh
+if [[ $(uname -s) == Darwin* ]]
+then 
+  echo "Building the kernel is not supported when running MacOS,"\
+    "because MacOS does not support CUDA. Please pass"\
+    "--nouse_inference_kernel to eval.py, and continue to the"\
+    "next step."
+else
+  nvcc -Xptxas -O3 --gpu-architecture=compute_61 --gpu-code=sm_61 \
+    --ptxas-options=-v -maxrregcount 63 ldif/ldif2mesh/ldif2mesh.cu -o \
+    ldif/ldif2mesh/ldif2mesh
+fi

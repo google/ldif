@@ -44,18 +44,21 @@ After this, the python environment should be ready to go.
 
 #### 2. Build GAPS
 
+```./build_gaps.sh```
+
 GAPS is a geometry processing library used by this package to generate the data
 and create interactive visualizations. The script `build_gaps.sh` does the
-following. First, it installs the necessary dependencies using apt. If sudo is
+following. One, it installs the necessary dependencies using. If sudo is
 not available on the system, the requirements are that GAPS have include access
-to standard OpenGL and GLu library headers (`GL/gl.h`, `GL/glu.h`), and that OSMesa
-static libraries can be linked. If these are satisfied, the line can commented
-out. Next, it clones the [GAPS](https://github.com/tomfunkhouser/gaps)
-repository from GitHub. Then, it moves the qview folder into the gaps
-repository. The `qview` executable is a C++ program written using GAPS to
-visualize SIF and LDIF representations. Finally, the script compiles all necessary
-GAPS C++ executables, which are called by the python code. If this step was
-successful, running `./gaps_is_installed.sh` should echo `Ready to go.`
+to standard OpenGL and GLu library headers (`GL/gl.h`, `GL/glu.h`) (on both linux and
+macos), and that OSMesa static libraries can be linked (on linux). If these are
+satisfied, the sudo line can be commented out. Two, it clones the
+[GAPS](https://github.com/tomfunkhouser/gaps) repository from GitHub, make some
+changes, and builds it. It moves the qview folder into the gaps repository. The
+`qview` executable is a C++ program written using GAPS to visualize SIF and LDIF
+representations. Finally, the script compiles all necessary GAPS C++ executables,
+which are called by the python code. If this step was successful, running
+`./gaps_is_installed.sh` should echo `Ready to go!`
 
 GAPS should compile with no warnings. Please report any warnings by opening a
 GitHub issue- the information would be greatly appreciated.

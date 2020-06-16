@@ -23,6 +23,14 @@ dodeca_path=${ldif_root}/data/dodeca_cameras.cam
 conf_path=${ldif_root}/data/base_conf.conf
 gaps=${ldif_root}/gaps/bin/x86_64/
 
+# On macos osmesa is not used, on linux it is:
+if [[ $(uname -s) == Darwin* ]]
+then
+  mesa=""
+else
+  mesa="-mesa"
+fi
+
 mkdir -p $outdir || true
 
 mesh_orig=${outdir}/mesh_orig.${mesh_in##*.}
@@ -48,7 +56,7 @@ ${gaps}/msh2pts $mesh ${outdir}/uniform_points.sdf -uniform_in_bbox -bbox \
 # Step 4) Generate the depth renders:
 depth_dir=${outdir}/depth_images/
 ${gaps}/scn2img $mesh $dodeca_path $depth_dir -capture_depth_images \
-  -mesa -width 224 -height 224
+  $mesa -width 224 -height 224
 
 # The normalized mesh is no longer needed on disk; we have the transformation,
 # so if we need it we can load the original symlinked mesh and transform it
@@ -61,5 +69,5 @@ echo "depth_directory ${depth_dir}" >> $local_conf
 cat $conf_path >> $local_conf
 # TODO(kgenova) We have to write out normals as well?
 ${gaps}/conf2img $local_conf ${outdir}/normals \
-  -create_normal_images -width 224 -height 224 -mesa
+  -create_normal_images -width 224 -height 224 $mesa
 rm $local_conf

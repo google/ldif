@@ -14,6 +14,8 @@
 # Lint as: python3
 """Utilities for managing gpus."""
 
+import sys
+
 import subprocess as sp
 
 from ldif.util.file_util import log
@@ -21,6 +23,9 @@ from ldif.util.file_util import log
 
 def get_free_gpu_memory(cuda_device_index):
   """Returns the current # of free megabytes for the specified device."""
+  if sys.platform == "darwin":
+    # No GPUs on darwin...
+    return 0
   result = sp.check_output('nvidia-smi --query-gpu=memory.free '
                            '--format=csv,nounits,noheader',
                            shell=True)
