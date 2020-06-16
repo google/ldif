@@ -1,14 +1,21 @@
 # Overview
 
-This is a joint codebase for the [LDIF](https://arxiv.org/abs/1912.06126) and
-[SIF](https://arxiv.org/abs/1904.06447) papers. It contains code to reproduce
-the results of those papers and also to convert input meshes into the LDIF and
-SIF representations. All .py and .sh files in the top-level `ldif/`
-directory are entry points into the code (`train.py`, `eval.py`,
+![alt text](assets/sif-teaser.png)
+![alt text](assets/ldif-teaser.png)
+
+This is a joint codebase for LDIF ([Local Deep Implicit Functions for 3D
+Shape](https://arxiv.org/abs/1912.06126)) and SIF ([Learning Shape Templates
+with Structured Implicit Functions](https://arxiv.org/abs/1904.06447)). Note
+that LDIF was previously called Deep Structured Implicit Functions. It contains
+code to reproduce the results of those papers,convert input meshes into the LDIF
+and SIF representations, and visualize and extract meshes from LDIF
+representations.
+
+All .py and .sh files in the top-level
+`ldif/` directory are entry points into the code (`train.py`, `eval.py`,
 `meshes2dataset.py`, `unit_test.sh`, and `reproduce_shapenet_autoencoder.sh`).
 The rest of this README provides information on initial setup and basic
-documentation for those files. For additional documentation, please see each
-file.
+documentation for those files. For additional documentation, please see each file.
 
 ## Environment
 
@@ -19,9 +26,19 @@ To set up the LDIF/SIF environment, follow these steps:
 The code was tested with python 3.6 and tensorflow 1.15 on linux. There is a
 requirements.txt containing all dependencies.
 
-If you have an anaconda environment, run `conda install --file requirements.txt`.
+To install the requirements, run `pip install -r requirements.txt`. Note that
+even on an anaconda environment, the requirements must be installed via pip.
+This is because not every dependency is available through conda. On conda,
+the recommended approach is to create a new conda environment and then
+use pip from there:
 
-If you have a system/pip environment, run `pip install -r requirements.txt`.
+```
+conda create  --name ldif python=3.6
+conda activate ldif
+pip install -r requirements.txt
+```
+
+If you have an anaconda environment, run `conda install --file requirements.txt`.
 
 After this, the python environment should be ready to go.
 

@@ -11,9 +11,6 @@ tensorflow_hub==0.8.0
 joblib==0.14.1
 pandas==1.0.3
 tabulate==0.8.3
-tensorflow==1.15.0
-absl==0.0
+tensorflow==1.15.2
 apache_beam==2.22.0
 Pillow==7.1.2
-skimage==0.0
-tensorflow_graphics==2020.5.20
