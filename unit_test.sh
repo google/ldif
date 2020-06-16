@@ -19,16 +19,8 @@
 set -e
 set -v
 
-# mktemp is used to create a temporary directory. If you don't want to
-# install it, just set d to any directory that exists where you'd like
-# the unit test outputs to go
-if [[ ! $(uname -s) == Darwin* ]]
-then 
-  sudo apt install mktemp
-fi
-# mktemp available by default on MacOS
-
-# First, make the dataset
+# First, make the dataset. mktemp should be available by default
+# on linux + macos
 d=$(mktemp -d)
 echo $d
 # Do everything in the temp directory, just to be tidy.
