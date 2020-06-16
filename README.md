@@ -7,7 +7,7 @@ This is a joint codebase for LDIF ([Local Deep Implicit Functions for 3D
 Shape](https://arxiv.org/abs/1912.06126)) and SIF ([Learning Shape Templates
 with Structured Implicit Functions](https://arxiv.org/abs/1904.06447)). Note
 that LDIF was previously called Deep Structured Implicit Functions. It contains
-code to reproduce the results of those papers,convert input meshes into the LDIF
+code to reproduce the results of those papers, convert input meshes into the LDIF
 and SIF representations, and visualize and extract meshes from LDIF
 representations.
 
@@ -33,7 +33,7 @@ the recommended approach is to create a new conda environment and then
 use pip from there:
 
 ```
-conda create  --name ldif python=3.6
+conda create --name ldif python=3.6
 conda activate ldif
 pip install -r requirements.txt
 ```
