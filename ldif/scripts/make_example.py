@@ -14,6 +14,8 @@
 # Lint as: python3
 """Library code to create an LDIF example directory from a file."""
 
+import os
+
 import subprocess as sp
 import numpy as np
 
@@ -23,6 +25,17 @@ from ldif.util import gaps_util
 from ldif.util import path_util
 # pylint: enable=g-bad-import-order
 
+def remove_png_dir(d):
+  """Removes a directory after verifying it contains only pngs."""
+  pngs = os.listdir(d)
+  pngs = [os.path.join(d, f) for f in pngs]
+  files = [f for f in pngs if os.path.isfile(f)]
+  if len(files) != len(pngs):
+    raise ValueError(f'Expected the directory {d} to contain only pngs files.')
+  for f in files:
+    os.remove(f)
+  os.rmdir(d)
+
 
 def write_depth_and_normals_npz(dirpath, path_out):
   depth_images = gaps_util.read_depth_directory(f'{dirpath}/depth_images', 20)
@@ -30,6 +43,9 @@ def write_depth_and_normals_npz(dirpath, path_out):
   depth_images = depth_images[..., np.newaxis]
   arr = np.concatenate([depth_images, normal_images], axis=-1)
   np.savez_compressed(path_out, arr)
+  # Delete the images, they are no longer needed:
+  remove_png_dir(f'{dirpath}/depth_images')
+  remove_png_dir(f'{dirpath}/normals')
 
 
 def mesh_to_example(codebase_root_dir, mesh_path, dirpath):
