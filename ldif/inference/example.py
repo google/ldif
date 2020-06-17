@@ -220,8 +220,11 @@ class InferenceExample(object):
     ex._gt_path = f'{dirpath}/mesh_orig.ply'
     ex._directory_root = dirpath
     ex._grid_path = f'{dirpath}/coarse_grid.grd'
+    # pylint: enable=protected-access
+    ex.precomputed_surface_samples_from_dodeca_path = (
+        f'{dirpath}/surface_samples_from_dodeca.npy'
+    )
     ex.is_from_directory = True
-    # pyling: enable=protected-access
     return ex
 
   @classmethod
@@ -639,6 +642,30 @@ class InferenceExample(object):
     assert count <= 100000
     self._surface_sample_count = count
 
+
+  @property
+  def precomputed_surface_samples_from_dodeca(self):
+    if not hasattr(self, '_precomputed_surface_samples_from_dodeca'):
+      if not self.is_from_directory:
+        raise ValueError('Precomputed surface samples are only'
+                         ' available with a from_directory example.')
+      if not os.path.isfile(self.precomputed_surface_samples_from_dodeca_path):
+        raise ValueError('Dodeca surface samples have not been precomputed at '
+                         f'{self.precomputed_surface_samples_from_dodeca_path}')
+      full_samples = np.load(
+          self.precomputed_surface_samples_from_dodeca_path)
+      np.random.shuffle(full_samples)
+      assert full_samples.shape[0] > 1
+      while full_samples.shape[0] < self.surface_sample_count:
+        log.verbose(f'Doubling samples from {full_samples.shape[0]} to'
+                    f' {2*full_samples.shape[0]}')
+        full_samples = np.tile(full_samples, [2, 1])
+      self._precomputed_surface_samples_from_dodeca = (
+          full_samples[:self.surface_sample_count, :]
+      )
+    return self._precomputed_surface_samples_from_dodeca
+
+
   @property
   def surface_samples_from_dodeca(self):
     """10K surface point samples with normals computed from the dodecahedron."""
@@ -654,6 +681,8 @@ class InferenceExample(object):
       np.random.shuffle(world_xyzn)
       assert world_xyzn.shape[0] > 1
       while world_xyzn.shape[0] < self.surface_sample_count:
+        log.verbose(f'Tiling samples from {world_xyzn.shape[0]} to'
+                    f' {2*world_xyzn.shape[0]}')
         world_xyzn = np.tile(world_xyzn, [2, 1])
       self._surface_samples_from_dodeca = world_xyzn[:self
                                                      .surface_sample_count, :]

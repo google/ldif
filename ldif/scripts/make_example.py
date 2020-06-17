@@ -21,9 +21,13 @@ import numpy as np
 
 # LDIF is an internal package, should be imported last.
 # pylint: disable=g-bad-import-order
+from ldif.util import file_util
 from ldif.util import gaps_util
 from ldif.util import path_util
+from ldif.inference import example
+from ldif.util.file_util import log
 # pylint: enable=g-bad-import-order
+
 
 def remove_png_dir(d):
   """Removes a directory after verifying it contains only pngs."""
@@ -48,9 +52,23 @@ def write_depth_and_normals_npz(dirpath, path_out):
   remove_png_dir(f'{dirpath}/normals')
 
 
-def mesh_to_example(codebase_root_dir, mesh_path, dirpath):
+def mesh_to_example(codebase_root_dir, mesh_path, dirpath, skip_existing):
   ldif_path = path_util.get_path_to_ldif_root()
-  sp.check_output(
+  if not skip_existing or not os.path.isfile(f'{dirpath}/depth_and_normals.npz'):
+    sp.check_output(
       f'{codebase_root_dir}/scripts/process_mesh_local.sh {mesh_path} {dirpath} {ldif_path}',
-      shell=True)
-  write_depth_and_normals_npz(dirpath, f'{dirpath}/depth_and_normals.npz')
+        shell=True)
+    write_depth_and_normals_npz(dirpath, f'{dirpath}/depth_and_normals.npz')
+  else:
+    log.verbose(f'Skipping shell script processing for {dirpath},'
+                ' the output already exists.')
+  # Precompute the dodeca samples for later:
+  e = example.InferenceExample.from_directory(dirpath)
+  sample_path = e.precomputed_surface_samples_from_dodeca_path
+  if not skip_existing or not os.path.isfile(sample_path):
+    e.surface_sample_count = 100000
+    precomputed_samples = e.surface_samples_from_dodeca
+    file_util.write_np(sample_path, precomputed_samples)
+  else:
+    log.verbose(f'Skipping surface sample precompution for {dirpath}, it\'s already done.')
+

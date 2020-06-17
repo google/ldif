@@ -257,7 +257,7 @@ class DepthEncoder(TrainedNetwork):
     return packed_vector
 
   def run_example(self, ex):
-    return self.run(ex.depth_images, ex.surface_samples_from_dodeca)
+    return self.run(ex.depth_images, ex.precomputed_surface_samples_from_dodeca)
 
 
 class Decoder(TrainedNetwork):

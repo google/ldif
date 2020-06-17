@@ -73,12 +73,9 @@ def process_one(f, mesh_directory, dataset_directory, skip_existing):
   # This is the last file the processing writes, if it already exists the
   # example has already been processed.
   final_file_written = f'{output_dir}/depth_and_normals.npz'
-  if skip_existing and os.path.isfile(final_file_written):
-    log.info(f'Skipping processing for {name}, it already exists.')
-    return output_dir
   make_example.mesh_to_example(
       os.path.join(path_util.get_path_to_ldif_parent(), 'ldif'), f,
-      f'{dataset_directory}/{split}/{synset}/{name}/')
+      f'{dataset_directory}/{split}/{synset}/{name}/', skip_existing)
   return output_dir
 
 

@@ -147,7 +147,7 @@ meshes in the input directory. Please do not delete or move the input directory
 after dataset creation, or the code won't have access to the ground truth meshes
 for evaluation.
 
-The dataset generation code writes 5-8mb of data per mesh (about 275GB for
+The dataset generation code writes 7-9mb of data per mesh (about 330GB for
 shapenet-13).
 
 ## Training
