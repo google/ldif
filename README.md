@@ -26,17 +26,14 @@ To set up the LDIF/SIF environment, follow these steps:
 The code was tested with python 3.6 and tensorflow 1.15 on linux. There is a
 requirements.txt containing all dependencies.
 
-To install the requirements, run `pip install -r requirements.txt`. Note that
-even on an anaconda environment, the requirements must be installed via pip.
-This is because not every dependency is available through conda. On conda,
-the recommended approach is to create a new conda environment and then
-use pip from there:
+If you use anaconda, run the following:
 
-```
-conda create --name ldif python=3.6
+``
+conda env create --name ldif -f environment.yml
 conda activate ldif
-pip install -r requirements.txt
-```
+``
+
+If you use a system pip installation, run `pip install -r requirements.txt`
 
 After this, the python environment should be ready to go.
 

@@ -40,7 +40,8 @@ python meshes2dataset.py --mesh_directory ${d}/input_meshes \
 # short. To get convergence, set to ~50k steps.
 python train.py --batch_size 2 --experiment_name two-shape-ldif \
   --model_directory ${d}/models --model_type "ldif" \
-  --dataset_directory ${d}/output_dataset --train_step_count 1000
+  --dataset_directory ${d}/output_dataset --train_step_count 1000 \
+  --log_level verbose
 
 python eval.py --dataset_directory ${d}/output_dataset \
   --model_directory ${d}/models --experiment_name two-shape-ldif \
