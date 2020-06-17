@@ -174,6 +174,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   tf.disable_v2_behavior()
+  log.set_level(FLAGS.log_level)
 
   log.info('Making dataset...')
   if not FLAGS.dataset_directory:

@@ -130,6 +130,7 @@ class Log(abc.ABC):
     return ['verbose', 'info', 'warning', 'error']
 
   def level_index(self, level):
+    level = level.lower()
     if level not in self.levels:
       raise ValueError(f'Unrecognized logging level: {level}')
     i = 0
