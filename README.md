@@ -43,7 +43,7 @@ After this, the python environment should be ready to go.
 
 GAPS is a geometry processing library used by this package to generate the data
 and create interactive visualizations. The script `build_gaps.sh` does the
-following. One, it installs the necessary dependencies using. If sudo is
+following. One, it installs the necessary dependencies with apt. If sudo is
 not available on the system, the requirements are that GAPS have include access
 to standard OpenGL and GLu library headers (`GL/gl.h`, `GL/glu.h`) (on both linux and
 macos), and that OSMesa static libraries can be linked (on linux). If these are
