@@ -228,16 +228,17 @@ def write_points(path_ext_optional, points):
       points = points.astype(np.float32)
       f.write(points.tobytes())
   else:
-    ptspath = path_no_ext + '.xyzn'
+    ptspath = path_no_ext + '.pts'
     if has_ext:
-      assert ext == '.xyzn'
+      assert ext == '.pts'
     has_normals = points.shape[-1] == 6
     if not has_normals:
       points = points[..., :3]
       normals = np.zeros_like(points)
       points = np.concatenate([points, normals], axis=-1)
     points = np.reshape(points, [-1, 6])
-    np.savetxt(ptspath, points.astype(np.float32))
+    with base_util.FS.open(ptspath, 'wb') as f:
+      f.write(points.astype(np.float32).tobytes())
   return ptspath
 
 

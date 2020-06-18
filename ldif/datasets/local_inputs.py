@@ -57,7 +57,7 @@ def load_example_dict(example_directory):
   log.verbose(f'Mesh name: {end_t - start_t}')
   start_t = end_t
 
-  log.info(f'Loading {mesh_name} from split {e.split}')
+  log.verbose(f'Loading {mesh_name} from split {e.split}')
   near_surface_samples = e.near_surface_samples
   end_t = time.time()
   log.verbose(f'NSS: {end_t - start_t}')

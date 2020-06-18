@@ -222,7 +222,7 @@ class InferenceExample(object):
     ex._grid_path = f'{dirpath}/coarse_grid.grd'
     # pylint: enable=protected-access
     ex.precomputed_surface_samples_from_dodeca_path = (
-        f'{dirpath}/surface_samples_from_dodeca.npy'
+        f'{dirpath}/surface_samples_from_dodeca.pts'
     )
     ex.is_from_directory = True
     return ex
@@ -652,17 +652,19 @@ class InferenceExample(object):
       if not os.path.isfile(self.precomputed_surface_samples_from_dodeca_path):
         raise ValueError('Dodeca surface samples have not been precomputed at '
                          f'{self.precomputed_surface_samples_from_dodeca_path}')
-      full_samples = np.load(
+      full_samples = gaps_util.read_pts_file(
           self.precomputed_surface_samples_from_dodeca_path)
-      np.random.shuffle(full_samples)
+      orig_count = 100000
+      assert full_samples.shape[0] == orig_count
+      assert full_samples.shape[1] == 6
+      assert full_samples.dtype == np.float32
       assert full_samples.shape[0] > 1
       while full_samples.shape[0] < self.surface_sample_count:
         log.verbose(f'Doubling samples from {full_samples.shape[0]} to'
                     f' {2*full_samples.shape[0]}')
         full_samples = np.tile(full_samples, [2, 1])
       self._precomputed_surface_samples_from_dodeca = (
-          full_samples[:self.surface_sample_count, :]
-      )
+          full_samples[np.random.choice(orig_count, self.surface_sample_count, replace=False), :])
     return self._precomputed_surface_samples_from_dodeca
 
 

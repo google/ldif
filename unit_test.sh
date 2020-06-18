@@ -41,7 +41,7 @@ python meshes2dataset.py --mesh_directory ${d}/input_meshes \
 python train.py --batch_size 2 --experiment_name two-shape-ldif \
   --model_directory ${d}/models --model_type "ldif" \
   --dataset_directory ${d}/output_dataset --train_step_count 1000 \
-  --log_level verbose
+  --log_level info
 
 python eval.py --dataset_directory ${d}/output_dataset \
   --model_directory ${d}/models --experiment_name two-shape-ldif \

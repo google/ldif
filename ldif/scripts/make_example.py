@@ -68,7 +68,9 @@ def mesh_to_example(codebase_root_dir, mesh_path, dirpath, skip_existing):
   if not skip_existing or not os.path.isfile(sample_path):
     e.surface_sample_count = 100000
     precomputed_samples = e.surface_samples_from_dodeca
-    file_util.write_np(sample_path, precomputed_samples)
+    assert precomputed_samples.shape[0] == 100000
+    assert precomputed_samples.shape[1] == 6
+    file_util.write_points(sample_path, precomputed_samples)
   else:
     log.verbose(f'Skipping surface sample precompution for {dirpath}, it\'s already done.')
 

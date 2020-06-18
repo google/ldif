@@ -246,9 +246,10 @@ def main(argv):
       log.info(f'The global step is {initial_index}')
       initial_index = int(initial_index)
       log.info(f'Parsed to {initial_index}')
+    start_time = time.time()
+    log_every = 10
     for i in range(initial_index, FLAGS.train_step_count):
-      start_time = time.time()
-      log.info(f'Step {i}')
+      log.verbose(f'Starting step {i}...')
       is_summary_step = i % FLAGS.summary_step_interval == 0
       if is_summary_step:
         _, summaries, loss = session.run(
@@ -256,9 +257,11 @@ def main(argv):
         writer.add_summary(summaries, i)
       else:
         _, loss = session.run([model_config.train_op, model_config.loss])
-      end_time = time.time()
-      steps_per_second = 1.0 / (end_time - start_time)
-      log.info(f'Loss: {loss}\tSteps/second: {steps_per_second}')
+      if not (i % log_every):
+        end_time = time.time()
+        steps_per_second = float(log_every) / (end_time - start_time)
+        start_time = end_time
+        log.info(f'Step: {i}\tLoss: {loss}\tSteps/second: {steps_per_second}')
 
       is_checkpoint_step = i % FLAGS.checkpoint_interval == 0
       if is_checkpoint_step or i == FLAGS.train_step_count - 1:
