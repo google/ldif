@@ -149,8 +149,12 @@ def _gapsview(d,
 
 def read_pts_file(path):
   """Reads a .pts or a .sdf point samples file."""
-  contents = file_util.readbin(path)
-  points = np.frombuffer(contents, dtype=np.float32).reshape([-1, 4])
+  _, ext = os.path.splitext(path)
+  assert ext in ['.sdf', '.pts']
+  l = 4 if ext == '.sdf' else 6
+  with file_util.open_file(path, 'rb') as f:
+    points = np.fromfile(f, dtype=np.float32)
+  points = np.reshape(points, [-1, l])
   return points
 
 

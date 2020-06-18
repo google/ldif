@@ -28,10 +28,10 @@ requirements.txt containing all dependencies.
 
 If you use anaconda, run the following:
 
-``
+```
 conda env create --name ldif -f environment.yml
 conda activate ldif
-``
+```
 
 If you use a system pip installation, run `pip install -r requirements.txt`
 
@@ -247,9 +247,6 @@ This is a preliminary release of the code, and there are a few steps left:
 * This code base does not yet support training a single-view network. In the
   mean-time, the single-view network architecture has been provided (see
   `ldif/model/hparams.py` for additional information).
-* The current input pipeline was written for the open-sourcing process, and
-   the training code is IO bound because it isn't optimized well. This makes
-  training slower than it could be.
 * While the eval code is fast enough for shapenet, the post-kernel
 eval code is written in numpy and is an unnecessary bottleneck. So inference at
   256^3 takes a few seconds per mesh, even though the kernel completes in

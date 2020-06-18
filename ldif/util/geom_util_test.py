@@ -48,7 +48,7 @@ def write_points(points, fname, validity=None):
   normals = np.zeros_like(points)
   log.info(f'Points shape: {points.shape}')
   log.info(f'Normals shape: {normals.shape}')
-  np.savetxt(output_fname + '.xyzn', np.concatenate([points, normals], axis=1))
+  np.savetxt(output_fname + '.pts', np.concatenate([points, normals], axis=1))
 
 
 def validate_zero_set_interpolation(zero_set_points, target_volume,
