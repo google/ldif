@@ -191,7 +191,7 @@ def mesh_chamfer_via_points(mesh1,
   points1, points2 = get_points(mesh1, mesh2, points1, points2, sample_count)
   dist12, _ = pointcloud_neighbor_distances_indices(points1, points2)
   dist21, _ = pointcloud_neighbor_distances_indices(points2, points1)
-  chamfer = 100.0 * (np.mean(dist12**2) + np.mean(dist21**2))
+  chamfer = 1000.0 * (np.mean(dist12**2) + np.mean(dist21**2))
   return chamfer
 
 
