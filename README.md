@@ -111,8 +111,7 @@ interested in exactly replicating the OccNet experiment's process. Here is an
 example command that will make a unit-cube sized mesh watertight:
 
 ```
-./ldif/gaps/bin/x86_64/msh2df input.ply tmp.grd -output_mesh watertight_output.ply \
-  -estimate_sign -spacing 0.002 -v
+./ldif/gaps/bin/x86_64/msh2df input.ply tmp.grd -estimate_sign -spacing 0.002 -v
 ./ldif/gaps/bin/x86_64/grd2msh tmp.grd output.ply
 rm tmp.grd
 ```
@@ -122,7 +121,10 @@ voxel grid and then floodfills at a resolution determined by the `-spacing`
 parameter in order to determine the sign. The smaller the value, the higher the
 resolution, the smaller the smallest allowable hole in the mesh, and the slower
 the algorithm. The bigger the value, the lower the resolution, the bigger the
-smallest allowable hole in the mesh, and the faster the algorithm.
+smallest allowable hole in the mesh, and the faster the algorithm. The run time
+of both msh2df and of the rest of the dataset creation pipeline will vary greatly
+depending on the `-spacing` parameter. The default value of 0.002 is quite high
+resolution for a mesh the size of a unit cube.
 
 While msh2df is provided as a utility, it was not used to generate the data for
 the trained LDIF+SIF models. For reproducing the shapenet results, please use
