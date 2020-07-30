@@ -179,6 +179,8 @@ def main(argv):
   log.info('Making dataset...')
   if not FLAGS.dataset_directory:
     raise ValueError('A dataset directory must be provided.')
+  if not os.path.isdir(FLAGS.dataset_directory):
+    raise ValueError(f'No dataset directory found at {FLAGS.dataset_directory}')
   # TODO(kgenova) This batch size should match.
   dataset = local_inputs.make_dataset(
       FLAGS.dataset_directory,
