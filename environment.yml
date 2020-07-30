@@ -73,4 +73,5 @@ dependencies:
     - tifffile==2020.6.3
     - tqdm==4.46.1
     - trimesh==3.7.0
+    - joblib==0.16.0 
 
