@@ -32,6 +32,7 @@ import tqdm
 # LDIF is local code, should be imported last.
 # pylint: disable=g-bad-import-order
 from ldif.scripts import make_example
+from ldif.util import file_util
 from ldif.util import path_util
 from ldif.util.file_util import log
 # pylint: enable=g-bad-import-order
@@ -55,14 +56,18 @@ flags.DEFINE_integer(
     'max_threads', -1, 'The maximum number of threads to use.'
     ' If -1, will allocate all available threads on CPU.')
 
+flags.DEFINE_string('log_level', 'INFO',
+    'One of VERBOSE, INFO, WARNING, ERROR. Sets logs to print '
+    'only at or above the specified level.')
 
-def process_one(f, mesh_directory, dataset_directory, skip_existing):
+
+def process_one(f, mesh_directory, dataset_directory, skip_existing, log_level):
   """Processes a single mesh, adding it to the dataset."""
   relpath = f.replace(mesh_directory, '')
   assert relpath[0] == '/'
   relpath = relpath[1:]
   split, synset = relpath.split('/')[:2]
-  log.info(f'The split is {split} and the synset is {synset}')
+  log.verbose(f'The split is {split} and the synset is {synset}')
   name = os.path.basename(f)
   name, extension = os.path.splitext(name)
   valid_extensions = ['.ply']
@@ -75,13 +80,14 @@ def process_one(f, mesh_directory, dataset_directory, skip_existing):
   final_file_written = f'{output_dir}/depth_and_normals.npz'
   make_example.mesh_to_example(
       os.path.join(path_util.get_path_to_ldif_parent(), 'ldif'), f,
-      f'{dataset_directory}/{split}/{synset}/{name}/', skip_existing)
+      f'{dataset_directory}/{split}/{synset}/{name}/', skip_existing, log_level)
   return output_dir
 
 
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
+  log.set_level(FLAGS.log_level)
 
   mesh_directory = FLAGS.mesh_directory
   if mesh_directory[-1] == '/':
@@ -90,7 +96,9 @@ def main(argv):
   files = glob.glob(f'{mesh_directory}/*/*/*.ply')
 
   if not files:
-    raise ValueError(f"Didn't find any ply files in {mesh_directory}")
+    raise ValueError(f"Didn't find any ply files in {mesh_directory}. "
+                     "Please make sure the directory structure is "
+                     "[mesh_directory]/[splits]/[class names]/[ply files]")
 
   # Make the directories first because it's not threadsafe and also might fail.
   log.info('Creating directories...')
@@ -112,7 +120,7 @@ def main(argv):
     n_jobs = FLAGS.max_threads
   output_dirs = Parallel(n_jobs=n_jobs)(
       delayed(process_one)(f, mesh_directory, FLAGS.dataset_directory,
-                           FLAGS.skip_existing) for f in tqdm.tqdm(files))
+                           FLAGS.skip_existing, FLAGS.log_level) for f in tqdm.tqdm(files))
   log.info('Making dataset registry...')
   splits = {x.split('/')[-4] for x in output_dirs}
   for split in splits:

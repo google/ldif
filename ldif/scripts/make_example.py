@@ -52,7 +52,10 @@ def write_depth_and_normals_npz(dirpath, path_out):
   remove_png_dir(f'{dirpath}/normals')
 
 
-def mesh_to_example(codebase_root_dir, mesh_path, dirpath, skip_existing):
+def mesh_to_example(codebase_root_dir, mesh_path, dirpath, skip_existing, log_level):
+  # Logging level must be specified because mesh_to_example is an entry point
+  # for a subprocess call.
+  log.set_level(log_level)
   ldif_path = path_util.get_path_to_ldif_root()
   if not skip_existing or not os.path.isfile(f'{dirpath}/depth_and_normals.npz'):
     sp.check_output(

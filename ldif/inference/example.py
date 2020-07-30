@@ -36,7 +36,6 @@ from ldif.util.file_util import log
 # pylint: enable=g-bad-import-order
 
 importlib.reload(gaps_util)
-importlib.reload(file_util)
 
 
 synset_to_cat = {

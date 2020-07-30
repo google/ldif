@@ -169,6 +169,7 @@ class SimpleLog(Log):
   def set_level(self, level):
     index = self.level_index(level)
     self.visible_levels = self.levels[index:]
+    self.verbose(f'Logging level changed to {level}')
 
 
 if ENVIRONMENT == 'GOOGLE':
