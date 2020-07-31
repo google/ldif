@@ -1039,6 +1039,7 @@ int main(int argc, char** argv) {
   auto kernel_start_t = std::chrono::high_resolution_clock::now();
   Eval<<<num_blocks, xres, shared_size>>>(grid, gpu_ldif,
                                           gpu_ldif_dynamic_memory, resolution);
+  GPU_CHECK_OK(cudaGetLastError());
   GPU_CHECK_OK(cudaDeviceSynchronize());
   auto kernel_stop_t = std::chrono::high_resolution_clock::now();
   float* grid_h = new float[resolution * resolution * resolution];
