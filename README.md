@@ -190,6 +190,17 @@ tensorboard --logdir [ldif_root]/trained_models/sif-transcoder-[experiment_name]
 
 assuming that `--model_root` was set to the default `ldif_root]/trained_models/`
 
+Warning: Training an LDIF from scratch takes a long time. SIF also takes a while, though
+not nearly as long. The expected performance with a V100 and a batch size of 24 is
+3.5 steps per second for LDIF, 6 steps per second for SIF. LDIF takes about 3.5M steps
+to fully converge on ShapeNet, while SIF takes about 700K. So that is about 10 days to
+train an LDIF from scratch, and about 32 hours for SIF. Note that LDIF performance is
+pretty reasonable after 3-4 days, so depending on your uses it may not be necessary to
+wait the whole time. The plan is to 1) add pretrained checkpoints (the most pressing
+TODO) and 2) add multi-gpu support, later on, to help mitigate this issue. Another
+practical option might be switching out the encoder for a smaller one, because most
+of the training time is the forward+backward pass on the ResNet50.
+
 ## Evaluation and Inference
 
 To evaluate a fully trained LDIF or SIF network, run the following:
