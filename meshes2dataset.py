@@ -64,7 +64,7 @@ flags.DEFINE_string('log_level', 'INFO',
     'only at or above the specified level.')
 
 flags.DEFINE_boolean(
-    'optimize', False, 'Whether to create an optimized tfrecords '
+    'optimize', True, 'Whether to create an optimized tfrecords '
     'dataset. This will substantially improve IO throughput, at '
     'the expense of approximately doubling disk usage and adding '
     'a moderate amount of additional dataset creation time. '
@@ -153,6 +153,7 @@ def main(argv):
   else:
     output_dirs = glob.glob(f'{FLAGS.dataset_directory}/*/*/*/surface_samples_from_dodeca.pts')
     output_dirs = [os.path.dirname(f) + '/' for f in output_dirs]
+  output_dirs.sort()  # So randomize with a fixed seed always results in the same order
   splits = {x.split('/')[-4] for x in output_dirs}
   if 'optimized' in splits:
     raise ValueError(f'The keyword "optimized" cannot be used for a split name, it is reserved.')
@@ -174,7 +175,7 @@ def main(argv):
     for split in splits:
       log.info(f'Optimizing split {split}...')
       elements_of_split = [x for x in output_dirs if x.split('/')[-4] == split]
-      examples_per_shard=24
+      examples_per_shard=64
       # Make sure shards are totally random:
       random.shuffle(elements_of_split)
       n_shards = int(len(elements_of_split) / examples_per_shard)
