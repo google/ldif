@@ -241,6 +241,21 @@ beam pipelines provided for generating datasets and running inference on a
 larger scale. To use these scripts, it would be necessary to hook up your own
 beam backend.
 
+## Updates to the code
+
+* The code now supports tfrecords dataset generation and usage. This reduces
+  the IO workload done during training. It is enabled by default. Existing
+  users can git pull, rerun `meshes2dataset.py` with `--optimize` and 
+  `--optimize_only`, and then resume training where they left off with the
+  new dataset improvements. If you currently experience less than 100% GPU
+  utilization, it is highly recommended. Note it increases dataset size by
+  3mb per example (and can be disabled with `--nooptimize`).
+  
+* Support for the inference kernel on Volta, Turing and CC 6.0 Pascal cards
+  should now work as intended. If you had trouble with the inference kernel,
+  please git pull and rerun `./build_kernel.sh`.
+  
+
 ## TODOS
 
 This is a preliminary release of the code, and there are a few steps left:
