@@ -123,11 +123,15 @@ class TrainedNetwork(object):
     """Creates a session with restored model variables."""
     with self.graph.as_default():
       if self.use_gpu:
-        allowable_frac = gpu_util.get_allowable_fraction_without(
-            mem_to_reserve=1024 + 512, cuda_device_index=0)  # ~1GB
-        gpu_options = tf.GPUOptions(
-            per_process_gpu_memory_fraction=allowable_frac)
-        config = tf.ConfigProto(gpu_options=gpu_options)
+        # For now these are disabled since it is difficult to work on
+        # all GPUs.
+        #allowable_frac = gpu_util.get_allowable_fraction_without(
+        #    mem_to_reserve=1024 + 512, cuda_device_index=0)  # ~1GB
+        #gpu_options = tf.GPUOptions(
+        #    per_process_gpu_memory_fraction=allowable_frac)
+        #config = tf.ConfigProto(gpu_options=gpu_options)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
       else:
         config = tf.ConfigProto(device_count={'GPU': 0})
       self.session = tf.Session(config=config)
@@ -843,13 +847,27 @@ class Decoder(TrainedNetwork):
       # Fifth step: Invoke the kernel.
       try:
         cmd_result = sp.check_output(cmd, shell=True)
-        log.verbose(cmd_result)
+        log.info(cmd_result.decode('utf-8').replace('\n', ''))
       except sp.CalledProcessError as e:
         if 'out of memory' in e.output.decode('utf-8'):
           raise ValueError(
               'The GPU does not have enough free memory left for the'
               ' inference kernel. Please reduce the fraction'
               ' reserved by tensorflow.')
+        elif 'no kernel image is available' in e.output.decode('utf-8'):
+          raise ValueError(
+              'It appears that the CUDA kernel was not built to your '
+              'gpu\'s architecture. Hopefully this is an easy fix. '
+              'Please go to developer.nvidia.com/cuda-gpus, and find '
+              'your gpu from the list. Then, modify ./build_kernel.sh '
+              'by adding compute_XX and sm_XX for whatever your GPU '
+              'compute capability is according to the website. For '
+              'example, a 2080 Ti would use compute_75 and sm_75. '
+              'Note that if your card supports below 35, it likely '
+              'will fail to compile using this method. If you are '
+              'seeing this error, please feel free to open up an issue '
+              'and report it. We would like to support as many gpus as '
+              'possible.')
         else:
           raise ValueError(f'Unrecognized error code {e.returncode} occurred'
                            f' during inference kernel evaluation: {e.output}')

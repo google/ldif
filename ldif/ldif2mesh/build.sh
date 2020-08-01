@@ -12,4 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-nvcc -Xptxas -O3 --gpu-architecture=compute_61 --gpu-code=sm_61 --ptxas-options=-v -maxrregcount 63 ldif2mesh.cu -o ldif2mesh
+cd $(dirname $0)
+nvcc -Xptxas -O3 \
+  --generate-code=arch=compute_60,code=sm_60 \
+  --generate-code=arch=compute_61,code=sm_61 \
+  --generate-code=arch=compute_62,code=sm_62 \
+  --generate-code=arch=compute_70,code=sm_70 \
+  --generate-code=arch=compute_72,code=sm_72 \
+  --generate-code=arch=compute_75,code=sm_75 \
+  --ptxas-options=-v -maxrregcount 63 $1 \
+  ldif2mesh.cu -o ldif2mesh

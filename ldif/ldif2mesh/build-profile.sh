@@ -11,5 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-nvcc -Xptxas -O3 --gpu-architecture=compute_61 --gpu-code=sm_61
---ptxas-options=-v -maxrregcount 63 -lineinfo ldif2mesh.cu -o ldif2mesh
+# This command only builds
+./build.sh "-lineinfo"

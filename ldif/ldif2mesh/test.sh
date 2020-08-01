@@ -12,11 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -e
+set -x
+
 gaps=../gaps/bin/x86_64/
-rm test-ldif-output.ply
-rm test-sif-output.ply
-nvcc -Xptxas -O3 --gpu-architecture=compute_61 --gpu-code=sm_61 \
-  --ptxas-options=-v -maxrregcount 63 -lineinfo ldif2mesh.cu -o ldif2mesh
+rm test-ldif-output.ply || true
+rm test-sif-output.ply || true
+./build.sh
 ./ldif2mesh test-ldif.txt extracted.occnet test-grid.grd -resolution 128
 ${gaps}/grd2msh test-grid.grd test-ldif-output.ply -threshold -0.07
 rm test-grid.grd

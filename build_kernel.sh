@@ -19,7 +19,5 @@ then
     "--nouse_inference_kernel to eval.py, and continue to the"\
     "next step."
 else
-  nvcc -Xptxas -O3 --gpu-architecture=compute_61 --gpu-code=sm_61 \
-    --ptxas-options=-v -maxrregcount 63 ldif/ldif2mesh/ldif2mesh.cu -o \
-    ldif/ldif2mesh/ldif2mesh
+  sh $(dirname $0)/ldif/ldif2mesh/build.sh
 fi
