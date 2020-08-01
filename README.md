@@ -35,7 +35,8 @@ conda activate ldif
 
 If you use a system pip installation, run `pip install -r requirements.txt`
 
-After this, the python environment should be ready to go.
+After this, the python environment should be ready to go. Please activate the
+environment before proceeding. The build scripts include some python.
 
 #### 2. Build GAPS
 
