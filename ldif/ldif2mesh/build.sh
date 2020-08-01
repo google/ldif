@@ -13,12 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 cd $(dirname $0)
+
+# Get the cuda version to figure out which architectures
+# to build for:
+version=($(python get_cuda_version.py))
+major_version=${version[0]}
+minor_version=${version[1]}
+echo "Major version is ${major_version} and minor version is ${minor_version}"
+
+# Support for Pascal (10-series cards, P100). Requires at least CUDA 8.
+# We don't support less than this.
+targets="-gencode=arch=compute_60,code=sm_60 \
+  -gencode=arch=compute_61,code=sm_61 \
+  -gencode=arch=compute_62,code=sm_62"
+
+# Support for Volta (e.g. V100). Requires CUDA 9.
+if [[ $major_version -ge 9 ]]; then
+  echo "Adding CUDA 9 Targets."
+  targets="${targets} \
+    -gencode=arch=compute_70,code=sm_70 \
+    -gencode=arch=compute_72,code=sm_72"
+fi
+
+# Support for Turing (e.g. RTX 2080 Ti). Requires CUDA 10.
+if [[ $major_version -ge 10 ]]; then
+  echo "Adding CUDA 10 Targets."
+  targets="${targets} \
+    -gencode=arch=compute_75,code=sm_75"
+fi
+
 nvcc -Xptxas -O3 \
-  --generate-code=arch=compute_60,code=sm_60 \
-  --generate-code=arch=compute_61,code=sm_61 \
-  --generate-code=arch=compute_62,code=sm_62 \
-  --generate-code=arch=compute_70,code=sm_70 \
-  --generate-code=arch=compute_72,code=sm_72 \
-  --generate-code=arch=compute_75,code=sm_75 \
+  ${targets} \
   --ptxas-options=-v -maxrregcount 63 $1 \
   ldif2mesh.cu -o ldif2mesh
