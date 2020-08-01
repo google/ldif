@@ -19,5 +19,5 @@ then
     "--nouse_inference_kernel to eval.py, and continue to the"\
     "next step."
 else
-  sh $(dirname $0)/ldif/ldif2mesh/build.sh
+  bash $(dirname $0)/ldif/ldif2mesh/build.sh
 fi
