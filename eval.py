@@ -38,6 +38,7 @@ from ldif.util import gpu_util
 from ldif.util import path_util
 from ldif.inference import example as examples
 from ldif.inference import metrics
+from ldif.inference import util
 from ldif.util.file_util import log
 # pylint: enable=g-bad-import-order
 # pylint: enable=g-import-not-at-top
@@ -99,7 +100,7 @@ flags.DEFINE_integer(
     'ckpt', -1, 'The index of the checkpoint to evaluate. If'
     ' -1, then evaluates the most recent checkpoint.')
 
-flags.DEFINE_string('split', 'test', 'The split to evaluate')
+flags.DEFINE_string('split', 'test', 'The split(s) to evaluate, comma separated.')
 
 flags.DEFINE_float(
     'eval_frac', 1.0, 'The fraction of the dataset to evaluate.'
@@ -124,6 +125,9 @@ flags.DEFINE_string(
 
 flags.DEFINE_integer('resolution', 256,
                      'The resolution at which to do marching cubes.')
+
+flags.DEFINE_string(
+    'only_class', '', 'Only evaluate on this class, if provided.')
 
 
 def get_model_root():
@@ -152,8 +156,8 @@ def load_newest_model():
   return encoder, decoder
 
 
-def get_evaluation_directories():
-  registry_path = f'{FLAGS.dataset_directory}/{FLAGS.split}.txt'
+def get_evaluation_directories(split):
+  registry_path = f'{FLAGS.dataset_directory}/{split}.txt'
   items_to_eval = file_util.readlines(registry_path)
   return items_to_eval
 
@@ -164,6 +168,21 @@ def filter_by_eval_frac(items):
   to_keep = int(len(tmp) * FLAGS.eval_frac)
   to_keep = max(1, to_keep)
   return tmp[:to_keep]
+
+
+def filter_by_class(items):
+  if not FLAGS.only_class:
+    return items
+  class_or_synset = FLAGS.only_class
+  if class_or_synset in util.cat_to_synset:
+    key = util.cat_to_synset[class_or_synset]
+  else:
+    key = class_or_synset
+  
+  class_items = [x for x in items if f'/{key}/' in x]
+  if not class_items:
+    raise ValueError(f'Filtering by class {key} results in no elements.')
+  return class_items
 
 
 def main(argv):
@@ -189,10 +208,6 @@ def main(argv):
   if not FLAGS.use_gpu_for_tensorflow:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-  log.info('Looking up dataset...')
-  dataset_items = get_evaluation_directories()
-  log.info(f'The dataset has {len(dataset_items)} elements.')
-
   log.info('Loading model...')
   # Try to detect the most common error early for a good warning message:
   if not os.path.isdir(get_model_root()):
@@ -200,64 +215,71 @@ def main(argv):
   encoder, decoder = load_newest_model()
 
   log.info('Evaluating metrics...')
-  results = []
-  to_eval = filter_by_eval_frac(dataset_items)
-  for path in tqdm.tqdm(to_eval):
-    e = examples.InferenceExample.from_directory(path)
-    embedding = encoder.run_example(e)
-    iou = decoder.iou(embedding, e)
-    gt_mesh = e.gt_mesh
-    mesh = decoder.extract_mesh(embedding, resolution=FLAGS.resolution)
-    if FLAGS.visualize:
-      # Visualize in the normalized_coordinate frame, so the camera is
-      # always reasonable. Metrics are computed in the original frame.
-      gaps_util.mshview([e.normalized_gt_mesh, mesh])
-
-    # TODO(kgenova) gaps2occnet is poorly named, it is really normalized ->
-    # unnormalized (where 'gaps' is the normalized training frame and 'occnet'
-    # is whatever the original frame of the input mesh was)
-    post_extract_start = time.time()
-    mesh.apply_transform(e.gaps2occnet)
-
-    if FLAGS.save_meshes:
-      path = (f'{FLAGS.result_directory}/meshes/{FLAGS.split}/{e.cat}/'
-              f'{e.mesh_hash}.ply')
-      if not os.path.isdir(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
-      mesh.export(path)
-    if FLAGS.save_ldifs:
-      path = (f'{FLAGS.result_directory}/ldifs/{FLAGS.split}/{e.cat}/'
-              f'{e.mesh_hash}.ply')
-      if not os.path.isdir(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
-      decoder.savetxt(embedding, path)
-
-    nc, fst, fs2t, chamfer = metrics.all_mesh_metrics(mesh, gt_mesh)
-    log.verbose(f'Mesh: {e.mesh_name}')
-    log.verbose(f'IoU: {iou}.')
-    log.verbose(f'F-Score (tau): {fst}')
-    log.verbose(f'Chamfer: {chamfer}')
-    log.verbose(f'F-Score (2*tau): {fs2t}')
-    log.verbose(f'Normal Consistency: {nc}')
-    results.append({
-        'key': e.mesh_name,
-        'Normal Consistency': nc,
-        'F-Score (tau)': fst,
-        'F-Score (2*tau)': fs2t,
-        'Chamfer': chamfer,
-        'IoU': iou
-    })
-    post_extract_end = time.time()
-    log.verbose(f'Time post extract: {post_extract_end - post_extract_start}')
-  results = pd.DataFrame(results)
-  if FLAGS.save_results:
-    complete_csv = results.to_csv()
-    result_path = f'{FLAGS.result_directory}/full_results.csv'
-    file_util.writetxt(result_path, complete_csv)
-  final_results = metrics.aggregate_extracted(results)
-  if FLAGS.save_results:
-    summary_out_path = f'{FLAGS.result_directory}/result_summary.csv'
-    file_util.writetxt(summary_out_path, final_results.to_csv())
+  splits = [x for x in FLAGS.split.split(',') if x]
+  log.info(f'Will evaluate on splits: {splits}')
+  for split in splits:
+    log.info(f'Starting evaluation for split {split}.')
+    dataset_items = get_evaluation_directories(split)
+    log.info(f'The split has {len(dataset_items)} elements.')
+    results = []
+    to_eval = filter_by_class(dataset_items)
+    to_eval = filter_by_eval_frac(to_eval)
+    for path in tqdm.tqdm(to_eval):
+      e = examples.InferenceExample.from_directory(path)
+      embedding = encoder.run_example(e)
+      iou = decoder.iou(embedding, e)
+      gt_mesh = e.gt_mesh
+      mesh = decoder.extract_mesh(embedding, resolution=FLAGS.resolution)
+      if FLAGS.visualize:
+        # Visualize in the normalized_coordinate frame, so the camera is
+        # always reasonable. Metrics are computed in the original frame.
+        gaps_util.mshview([e.normalized_gt_mesh, mesh])
+  
+      # TODO(kgenova) gaps2occnet is poorly named, it is really normalized ->
+      # unnormalized (where 'gaps' is the normalized training frame and 'occnet'
+      # is whatever the original frame of the input mesh was)
+      post_extract_start = time.time()
+      mesh.apply_transform(e.gaps2occnet)
+  
+      if FLAGS.save_meshes:
+        path = (f'{FLAGS.result_directory}/meshes/{split}/{e.cat}/'
+                f'{e.mesh_hash}.ply')
+        if not os.path.isdir(os.path.dirname(path)):
+          os.makedirs(os.path.dirname(path))
+        mesh.export(path)
+      if FLAGS.save_ldifs:
+        path = (f'{FLAGS.result_directory}/ldifs/{split}/{e.cat}/'
+                f'{e.mesh_hash}.ply')
+        if not os.path.isdir(os.path.dirname(path)):
+          os.makedirs(os.path.dirname(path))
+        decoder.savetxt(embedding, path)
+  
+      nc, fst, fs2t, chamfer = metrics.all_mesh_metrics(mesh, gt_mesh)
+      log.verbose(f'Mesh: {e.mesh_name}')
+      log.verbose(f'IoU: {iou}.')
+      log.verbose(f'F-Score (tau): {fst}')
+      log.verbose(f'Chamfer: {chamfer}')
+      log.verbose(f'F-Score (2*tau): {fs2t}')
+      log.verbose(f'Normal Consistency: {nc}')
+      results.append({
+          'key': e.mesh_name,
+          'Normal Consistency': nc,
+          'F-Score (tau)': fst,
+          'F-Score (2*tau)': fs2t,
+          'Chamfer': chamfer,
+          'IoU': iou
+      })
+      post_extract_end = time.time()
+      log.verbose(f'Time post extract: {post_extract_end - post_extract_start}')
+    results = pd.DataFrame(results)
+    if FLAGS.save_results:
+      complete_csv = results.to_csv()
+      result_path = f'{FLAGS.result_directory}/full_results_{split}.csv'
+      file_util.writetxt(result_path, complete_csv)
+    final_results = metrics.aggregate_extracted(results)
+    if FLAGS.save_results:
+      summary_out_path = f'{FLAGS.result_directory}/result_summary_{split}.csv'
+      file_util.writetxt(summary_out_path, final_results.to_csv())
 
 
 if __name__ == '__main__':
