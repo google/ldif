@@ -42,6 +42,7 @@ synset_to_cat = {
     '04401088': 'telephone',
     '2472293': 'bodyshapes',
 }
+cat_to_synset = {v:k for k,v in synset_to_cat.items()}
 
 
 def parse_xid_str(xidstr):
