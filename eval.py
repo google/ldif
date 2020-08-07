@@ -249,7 +249,7 @@ def main(argv):
         mesh.export(path)
       if FLAGS.save_ldifs:
         path = (f'{FLAGS.result_directory}/ldifs/{split}/{e.cat}/'
-                f'{e.mesh_hash}.ply')
+                f'{e.mesh_hash}.txt')
         if not os.path.isdir(os.path.dirname(path)):
           os.makedirs(os.path.dirname(path))
         decoder.savetxt(embedding, path)
