@@ -2,3 +2,4 @@ ldif/__pycache__
 ldif/*/__pycache__
 ldif/gaps
 ldif/ldif2mesh/ldif2mesh
+.DS_Store
