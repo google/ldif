@@ -20,11 +20,17 @@ import torch
 from ldif.util import file_util
 from ldif.util.file_util import log
 
+import sif_evaluation
+
 
 def ensure_are_tensors(named_tensors):
   for name, tensor in named_tensors.items():
     if not (torch.is_tensor(tensor)):
       raise ValueError(f'Argument {name} is not a tensor, it is a {type(tensor)}')
+
+def ensure_type(v, t, name):
+  if not isinstance(v, t):
+    raise ValueError(f'Error: variable {name} has type {type(v)}, not the expected type {t}')
 
 def _load_v1_txt(path):
   """Parses a SIF V1 text file, returning numpy arrays.
@@ -90,6 +96,64 @@ def _load_v1_txt(path):
   return constants, centers, radii, rotations, symmetry_count, features
 
 
+def _tile_for_symgroups(elements, symmetry_count):
+  """Tiles an input tensor along its element dimension based on symmetry.
+
+  Args:
+    elements: Tensor with shape [batch_size, element_count, ...].
+
+  Returns:
+    Tensor with shape [batch_size, element_count + tile_count, ...]. The
+    elements have been tiled according to the model configuration's symmetry
+    group description.
+  """
+  left_right_sym_count = symmetry_count
+  assert len(elements.shape) >= 3
+  # The first K elements get reflected with left-right symmetry (z-axis) as
+  # needed.
+  if left_right_sym_count:
+    first_k = elements[:, :left_right_sym_count, ...]
+    elements = torch.cat([elements, first_k], axis=1)
+  # TODO(kgenova) As additional symmetry groups are added, add their tiling.
+  return elements
+
+
+def reflect_z(samples):
+  """Reflects the sample locations across the planes specified in xyz.
+
+  Args:
+    samples: Tensor with shape [..., 3].
+
+  Returns:
+    Tensor with shape [..., 3]. The reflected samples.
+  """
+  to_keep = samples[..., :-1]
+  to_reflect = samples[..., -1:]
+  return torch.cat([to_keep, -to_reflect], dim=-1)
+
+
+def _generate_symgroup_samples(samples, element_count, symmetry_count):
+  """Duplicates and transforms samples as needed for symgroup queries.
+
+  Args:
+    samples: Tensor with shape [batch_size, sample_count, 3].
+
+  Returns:
+    Tensor with shape [batch_size, effective_element_count, sample_count, 3].
+  """
+  if len(samples.shape) == 3:
+    raise ValueError(f'Internal Error: Samples have shape {samples.shape}')
+  bs, sample_count = samples.shape[:2]
+  samples = torch.reshape(samples, [bs, 1, sample_count, 3]).expand([-1, element_count, -1, -1])
+
+  left_right_sym_count = symmetry_count
+  if left_right_sym_count:
+    first_k = samples[:, :left_right_sym_count, :, :]
+    first_k = z_reflect(first_k)
+    samples = torch.cat([samples, first_k], axis=1)
+  return samples
+
+
 class Sif(object):
   """A SIF for loading from txts, packing into a tensor, and evaluation."""
 
@@ -103,7 +167,7 @@ class Sif(object):
     if not has_batch_dim and len(centers.shape) != 2:
       raise ValueError(f'Unable to parse input tensor shape: {centers.shape}')
     bs = centers.shape[0] if has_batch_dim else 1
-    element_count = centers.shape[-2]
+    element_count = int(centers.shape[-2].cpu().numpy())
     self._constants = torch.reshape(constants, (bs, element_count, 1))
     self._centers = torch.reshape(centers, (bs, element_count, 3))
     self._radii = torch.reshape(radii, (bs, element_count, 3))
@@ -114,15 +178,43 @@ class Sif(object):
 
   @classmethod
   def from_file(cls, path):
-    """Generates a SIF object from a txt file."""
-    loaded = _load_v1_txt(path)
-    symmetry_count, features = loaded[-2:]
-    explicits = [torch.Tensor(x).cuda() for x in loaded[:-2]]
-    # TODO(kgenova) Consider adding support to ignore the features, rather
-    # than just crashing. It would be fine to just throw them away.
-    if features is not None:
-      raise ValueError(f'This class cannot handle LDIFs, only SIFs.')
-    return cls(*explicits, symmetry_count)
+    """Generates a SIF object from one or more txt files.
+    
+    Args:
+      path: Either a string containing the path to a txt file, or a list of
+        one or more strings, each containing a path to a text file.
+
+    Returns:
+      A SIF object. It will have a batch dimension containing each of the
+      txts in order, or no batch dimension if only one path was provided.
+    """
+    if len(path) == 1 or isinstance(path, str):
+      loaded = _load_v1_txt(path)
+      symmetry_count, features = loaded[-2:]
+      explicits = [torch.Tensor(x).cuda() for x in loaded[:-2]]
+      # TODO(kgenova) Consider adding support to ignore the features, rather
+      # than just crashing. It would be fine to just throw them away.
+      if features is not None:
+        raise ValueError(f'This class cannot handle LDIFs, only SIFs.')
+      return cls(*explicits, symmetry_count)
+    flattened_shapes = []
+    symc = None
+    ec = None
+    for p in path:
+      shape = cls.from_file(path)
+      flat, cur_symc = shape.to_flat_tensor()
+      flattened_shapes.append(flat)
+      if symc is None:
+        symc = cur_symc
+      if symc != cur_symc:
+        raise ValueError('Trying to make a batched SIF with mismatched '
+          f'symmetry: {symc} vs {cur_symc}')
+      if ec is None:
+        ec = shape.element_count
+      if ec != shape.element_count:
+        raise ValueError('Trying to make a batched SIF with mismatched '
+          f'element counts: {ec} vs {shape.element_count}')
+    return cls.from_flat_tensor(flattened_shapes, symc)
 
   @classmethod
   def from_flat_tensor(cls, tensor, symmetry_count):
@@ -150,7 +242,8 @@ class Sif(object):
   def to_flat_tensor(self):
     """Generates a single tensor from the SIF. Can be batched with torch.cat.
 
-    Works with either single or batch SIFs.
+    Works with either single or batch SIFs. Useful for preloading the SIFs
+    so loading is not a bottleneck during training.
     
     Returns:
       1) A tensor with shape [bs, element_count, 10]
@@ -182,8 +275,21 @@ class Sif(object):
       element_count RBF weights correspond to the 'real' elements with no
       symmetry transforms applied, in order.
     """
-    pass
+    samples = _generate_symgroup_samples(samples, self.element_count,
+      self.symmetry_count)
+    weights = sif_evaluation.compute_rbf_influences(
+      self._tiled_centers, self._tiled_radii, self._tiled_rotations, samples)
+    assert len(weights.shape) == 4
+    if self.bs == 1:
+      return weights[0, ...]
+    return weights
 
+  @property
+  def effective_element_count(self):
+    """The number of elements, accounting for symmetry."""
+    return self.element_count + self.symmetry_count
+
+  @property
   def constants(self):
     """The constant parameters associated with the SIF.
 
@@ -196,6 +302,34 @@ class Sif(object):
       return self._constants[0, :]
     return self._constants[:, :]
 
+  @property
+  def _tiled_constants(self):
+    """The constants, tiled to account for symmetry."""
+    if not hasattr(self, '__tiled_constants'):
+      self.__tiled_constants = _tile_for_symgroups(self._constants, self.symmetry_count)
+    return self.__tiled_constants
+  
+  @property
+  def _tiled_centers(self):
+    """The centers, tiled to account for symmetry."""
+    if not hasattr(self, '__tiled_centers'):
+      self.__tiled_centers = _tile_for_symgroups(self._centers, self.symmetry_count)
+    return self.__tiled_centers
+
+  @property
+  def _tiled_radii(self):
+    """The radii, tiled to account for symmetry."""
+    if not hasattr(self, '__tiled_radii'):
+      self.__tiled_radii = _tile_for_symgroups(self._radii, self.symmetry_count)
+    return self.__tiled_radii
+
+  @property
+  def _tiled_rotations(self):
+    """The rotations, tiled to account for symmetry."""
+    if not hasattr(self, '__tiled_rotations'):
+      self.__tiled_rotations = _tile_for_symgroups(self._rotations, self.symmetry_count)
+    return self.__tiled_rotations
+
   def world2local(self):
     """The 4x4 transformation matrices associated with the SIF elements.
 
@@ -204,7 +338,10 @@ class Sif(object):
       (bs, effective_element_count, 4, 4). See rbf_influence for an explanation
       of element_count vs effective_element_count.
     """
-    pass
+    if not hasattr(self, '_world2local'):
+      self._world2local = sif_evaluation.compute_world2local(self.centers,
+        self.radii, self.rotations)
+    return self._world2local
 
   def eval(self, samples):
     """Evaluates the SIF at the samples.
@@ -221,6 +358,10 @@ class Sif(object):
     # TODO(kgenova) A future version of the SIF txt file should contain the
     # isosurface used for inside/outside determination, so users don't have
     # to keep that information around.
-    pass
+    cs = self.constants
+    sample_count = samples.shape[-1]
+    cs = torch.unsqueeze(cs, dim=-2)
+    result = cs * self.rbf_influence(samples)
+    return torch.sum(result, dim=-1)
 
 

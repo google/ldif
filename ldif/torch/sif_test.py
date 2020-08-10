@@ -77,7 +77,6 @@ class TestSif(unittest.TestCase):
     self._ensure_sifs_equal(shape, unflattened)
 
   def test_batching(self):
-    shapes = []
     flattened_shapes = []
     test_names = ['b831f60f211435df5bbc861d0124304c',
         'b7eefc4c25dd9e49238581dd5a8af82c']
@@ -93,12 +92,68 @@ class TestSif(unittest.TestCase):
 
     batched_tensor = torch.cat(flats, dim=0)
     batched_sif = sif.Sif.from_flat_tensor(batched_tensor, symcs[0])
-    unbatched = batched_sif 
+    self.assertEqual(batched_sif.bs, 2)
+    auto_batched_sif = sif.Sif.from_file(test_names)
+    self._ensure_sifs_equal(batched_sif, auto_batched_sif)
+
+  def _test_rbf_evaluation(self):
+    sif_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt')
+    shape = sif.Sif.from_file(sif_path)
+    shape.symmetry_count = 0
+    samples = torch.Tensor([[0.1, 0.2, 0.3]]).cuda()
+    rbf_values = shape.rbf_influence(samples).cpu().numpy()
+    expected_rbf_values = np.array([], dtype=np.float32)
+    self.assertEqual(rbf_values.shape, (1, 32))
+    for i in range(expected_rbf_values.shape):
+      self.assertAlmostEqual(rbf_values[0, i], expected_rbf_values[i])
+
+  def test_evaluation_nosym_nobatch(self):
+    sif_path = os.path.join(TEST_DATA_DIR, 'sif-nosym.txt')
+    shape = sif.Sif.from_file(sif_path)
+    shape.symmetry_count = 0
+    samples = torch.Tensor([[0.02, 0.008, -0.05]]).cuda()
+    expected_values = [-0.0547159]
+    values = shape.eval(samples)
+    self.assertEqual(values.shape, (1,))
+    for i in range(len(expected_values)):
+      self.assertAlmostEqual(values[i], expected_values[i])
     
+  def test_evaluation_sym_nobatch(self):
+    sif_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt')
+    shape = sif.Sif.from_file(sif_path)
+    samples = torch.Tensor([[0.02, 0.008, -0.05]]).cuda()
+    expected_values = [-0.238868]
+    values = shape.eval(samples)
+    self.assertEqual(values.shape, (1,))
+    for i in range(len(expected_values)):
+      self.assertAlmostEqual(values[i], expected_values[i])
 
+  def test_evaluation_sym_batch(self):
+    # TODO(kgenova) Need to replace the nosym with something that batches with the second.
+    sif_a_path = os.path.join(TEST_DATA_DIR, 'sif-nosym.txt')
+    sif_b_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt') 
+    shape = sif.Sif.from_file([sif_a_path, sif_b_path])
+    samples = torch.Tensor([[0.02, 0.008, -0.05],
+      [0.0, 0.0, 0.0]]).cuda()
+    expected_values = np.array([[-0.0547159, -0.133926],
+      [ -0.238868, -0.590321]], dtype=np.float32)
+    values = shape.eval(samples)
+    self.assertEqual(values.shape, (2,2))
+    for bi in range(2):
+      for si in range(2):
+        self.assertAlmostEqual(values[bi, si], expected_values[bi, si])
 
-
-
-
+  def test_world2local(self):
+    """Tests that the code successfully produces 4x4 matrices (only)"""
+    sif_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt')
+    shape = sif.Sif.from_file(sif_path)
+    world2local = shape.world2local
+    self.assertEqual(world2local.shape, (32, 4, 4))
+    sif_a_path = os.path.join(TEST_DATA_DIR, 'b7eefc4c25dd9e49238581dd5a8af82c.txt')
+    sif_b_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt') 
+    shape = sif.Sif.from_file([sif_a_path, sif_b_path])
+    self.assertEqual(world2local.shape, (2, 32, 4, 4))
+    
+    
 if __name__ == '__main__':
   unittest.main()
