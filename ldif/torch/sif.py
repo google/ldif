@@ -141,7 +141,7 @@ def _generate_symgroup_samples(samples, element_count, symmetry_count):
   Returns:
     Tensor with shape [batch_size, effective_element_count, sample_count, 3].
   """
-  if len(samples.shape) == 3:
+  if len(samples.shape) != 3:
     raise ValueError(f'Internal Error: Samples have shape {samples.shape}')
   bs, sample_count = samples.shape[:2]
   samples = torch.reshape(samples, [bs, 1, sample_count, 3]).expand([-1, element_count, -1, -1])
@@ -149,9 +149,36 @@ def _generate_symgroup_samples(samples, element_count, symmetry_count):
   left_right_sym_count = symmetry_count
   if left_right_sym_count:
     first_k = samples[:, :left_right_sym_count, :, :]
-    first_k = z_reflect(first_k)
+    first_k = reflect_z(first_k)
     samples = torch.cat([samples, first_k], axis=1)
   return samples
+
+def _generate_symgroup_frames(world2local, symmetry_count):
+  """Duplicates and adds reflection transformation for symgroup matrices.
+
+  Args:
+    world2local: Tensor with shape [bs, element_count, 4, 4].
+    symmetry_count: Int, at most element_count. The number of LR symmetric frames.
+
+  Returns:
+    Tensor with shape [bs, effective_element_count, 4, 4].
+  """
+  if len(world2local.shape) != 4:
+    raise ValueError(f'Invalid world2local shape: {world2local.shape}')
+  if symmetry_count:
+    bs = world2local.shape[0]
+    reflector = torch.eye(4).cuda()
+    first_two_rows = reflector[:2, :]
+    last_row = reflector[3:, :]
+    reflected = -1 * reflector[2:3, :]
+    reflector = torch.cat([first_two_rows, reflected, last_row], dim=0)
+    reflector = torch.reshape(reflector, [1, 1, 4, 4]).expand([bs, symmetry_count,
+        -1, -1])
+    first_k = world2local[:, :symmetry_count, :, :]
+    first_k = torch.matmul(first_k, reflector)
+    world2local = torch.cat([world2local, first_k], axis=1)
+  return world2local
+
 
 
 class Sif(object):
@@ -167,7 +194,8 @@ class Sif(object):
     if not has_batch_dim and len(centers.shape) != 2:
       raise ValueError(f'Unable to parse input tensor shape: {centers.shape}')
     bs = centers.shape[0] if has_batch_dim else 1
-    element_count = int(centers.shape[-2].cpu().numpy())
+    element_count = centers.shape[-2]
+    assert isinstance(element_count, int)
     self._constants = torch.reshape(constants, (bs, element_count, 1))
     self._centers = torch.reshape(centers, (bs, element_count, 3))
     self._radii = torch.reshape(radii, (bs, element_count, 3))
@@ -201,7 +229,7 @@ class Sif(object):
     symc = None
     ec = None
     for p in path:
-      shape = cls.from_file(path)
+      shape = cls.from_file(p)
       flat, cur_symc = shape.to_flat_tensor()
       flattened_shapes.append(flat)
       if symc is None:
@@ -214,7 +242,7 @@ class Sif(object):
       if ec != shape.element_count:
         raise ValueError('Trying to make a batched SIF with mismatched '
           f'element counts: {ec} vs {shape.element_count}')
-    return cls.from_flat_tensor(flattened_shapes, symc)
+    return cls.from_flat_tensor(torch.cat(flattened_shapes), symc)
 
   @classmethod
   def from_flat_tensor(cls, tensor, symmetry_count):
@@ -230,6 +258,8 @@ class Sif(object):
     Returns:
       A Sif object that can evaluate a batch of SIFs at once.
     """
+    if not torch.is_tensor(tensor):
+      raise ValueError(f'Input is not a tensor, but a {type(tensor)}: {tensor}')
     if len(tensor.shape) != 3 or tensor.shape[-1] != 10:
       raise ValueError(f'Could not parse flat tensor due to shape: {tensor.shape}')
     constants = tensor[:, :, :1]
@@ -275,11 +305,22 @@ class Sif(object):
       element_count RBF weights correspond to the 'real' elements with no
       symmetry transforms applied, in order.
     """
+    if len(samples.shape) == 2:
+      if self.bs != 1:
+        raise ValueError('Samples must have a batch dimension if the SIF does.'
+            f' Input sample shape was {samples.shape} and SIF bs is {self.bs}')
+      samples = torch.unsqueeze(samples, dim=0)
+
     samples = _generate_symgroup_samples(samples, self.element_count,
       self.symmetry_count)
     weights = sif_evaluation.compute_rbf_influences(
       self._tiled_centers, self._tiled_radii, self._tiled_rotations, samples)
     assert len(weights.shape) == 4
+    assert weights.shape[-1] == 1
+    # Currently last dim is always 1 and it's [bs, eec, sc, 1], not
+    # [bs, sc, eec] or [sc, eec] as needed
+    weights = weights[..., 0]
+    weights = torch.transpose(weights, -2, -1)
     if self.bs == 1:
       return weights[0, ...]
     return weights
@@ -299,8 +340,8 @@ class Sif(object):
       of how to 'effective' samples.
     """
     if self.bs == 1:
-      return self._constants[0, :]
-    return self._constants[:, :]
+      return self._tiled_constants[0, :, 0]
+    return self._tiled_constants[:, :, 0]
 
   @property
   def _tiled_constants(self):
@@ -330,6 +371,7 @@ class Sif(object):
       self.__tiled_rotations = _tile_for_symgroups(self._rotations, self.symmetry_count)
     return self.__tiled_rotations
 
+  @property
   def world2local(self):
     """The 4x4 transformation matrices associated with the SIF elements.
 
@@ -339,8 +381,13 @@ class Sif(object):
       of element_count vs effective_element_count.
     """
     if not hasattr(self, '_world2local'):
-      self._world2local = sif_evaluation.compute_world2local(self.centers,
-        self.radii, self.rotations)
+      self._world2local = sif_evaluation.compute_world2local(self._centers,
+          self._radii, self._rotations)
+      self._world2local = _generate_symgroup_frames(self._world2local,
+          self.symmetry_count)
+      if self.bs == 1:
+        self._world2local = torch.reshape(self._world2local,
+            [self.effective_element_count, 4, 4])
     return self._world2local
 
   def eval(self, samples):
@@ -358,10 +405,13 @@ class Sif(object):
     # TODO(kgenova) A future version of the SIF txt file should contain the
     # isosurface used for inside/outside determination, so users don't have
     # to keep that information around.
+    if self.bs > 1 and len(samples.shape) == 2:
+      samples = torch.unsqueeze(samples, dim=0).expand([self.bs, -1, -1])
     cs = self.constants
     sample_count = samples.shape[-1]
     cs = torch.unsqueeze(cs, dim=-2)
-    result = cs * self.rbf_influence(samples)
+    rbfs = self.rbf_influence(samples)
+    result = cs * rbfs
     return torch.sum(result, dim=-1)
 
 

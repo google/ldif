@@ -80,8 +80,8 @@ class TestSif(unittest.TestCase):
     flattened_shapes = []
     test_names = ['b831f60f211435df5bbc861d0124304c',
         'b7eefc4c25dd9e49238581dd5a8af82c']
-    for name in test_names:
-      path = os.path.join(TEST_DATA_DIR, name + '.txt')
+    paths = [os.path.join(TEST_DATA_DIR, name + '.txt') for name in test_names]
+    for path in paths:
       shape = sif.Sif.from_file(path)
       flattened_shapes.append(shape.to_flat_tensor())
     flats = [x[0] for x in flattened_shapes]
@@ -93,13 +93,12 @@ class TestSif(unittest.TestCase):
     batched_tensor = torch.cat(flats, dim=0)
     batched_sif = sif.Sif.from_flat_tensor(batched_tensor, symcs[0])
     self.assertEqual(batched_sif.bs, 2)
-    auto_batched_sif = sif.Sif.from_file(test_names)
-    self._ensure_sifs_equal(batched_sif, auto_batched_sif)
+    auto_batched_sif = sif.Sif.from_file(paths)
+    self._ensure_sifs_equal(batched_sif, auto_batched_sif, -1)
 
   def _test_rbf_evaluation(self):
     sif_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt')
     shape = sif.Sif.from_file(sif_path)
-    shape.symmetry_count = 0
     samples = torch.Tensor([[0.1, 0.2, 0.3]]).cuda()
     rbf_values = shape.rbf_influence(samples).cpu().numpy()
     expected_rbf_values = np.array([], dtype=np.float32)
@@ -113,7 +112,7 @@ class TestSif(unittest.TestCase):
     shape.symmetry_count = 0
     samples = torch.Tensor([[0.02, 0.008, -0.05]]).cuda()
     expected_values = [-0.0547159]
-    values = shape.eval(samples)
+    values = shape.eval(samples).cpu().numpy()
     self.assertEqual(values.shape, (1,))
     for i in range(len(expected_values)):
       self.assertAlmostEqual(values[i], expected_values[i])
@@ -123,36 +122,36 @@ class TestSif(unittest.TestCase):
     shape = sif.Sif.from_file(sif_path)
     samples = torch.Tensor([[0.02, 0.008, -0.05]]).cuda()
     expected_values = [-0.238868]
-    values = shape.eval(samples)
+    values = shape.eval(samples).cpu().numpy()
     self.assertEqual(values.shape, (1,))
     for i in range(len(expected_values)):
-      self.assertAlmostEqual(values[i], expected_values[i])
+      self.assertAlmostEqual(values[i], expected_values[i], places=5)
 
   def test_evaluation_sym_batch(self):
     # TODO(kgenova) Need to replace the nosym with something that batches with the second.
-    sif_a_path = os.path.join(TEST_DATA_DIR, 'sif-nosym.txt')
+    sif_a_path = os.path.join(TEST_DATA_DIR, 'b7eefc4c25dd9e49238581dd5a8af82c.txt')
     sif_b_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt') 
     shape = sif.Sif.from_file([sif_a_path, sif_b_path])
     samples = torch.Tensor([[0.02, 0.008, -0.05],
       [0.0, 0.0, 0.0]]).cuda()
-    expected_values = np.array([[-0.0547159, -0.133926],
+    expected_values = np.array([[-0.126568, -0.11410],
       [ -0.238868, -0.590321]], dtype=np.float32)
-    values = shape.eval(samples)
+    values = shape.eval(samples).cpu().numpy()
     self.assertEqual(values.shape, (2,2))
     for bi in range(2):
       for si in range(2):
-        self.assertAlmostEqual(values[bi, si], expected_values[bi, si])
+        self.assertAlmostEqual(values[bi, si], expected_values[bi, si], places=5)
 
   def test_world2local(self):
     """Tests that the code successfully produces 4x4 matrices (only)"""
     sif_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt')
     shape = sif.Sif.from_file(sif_path)
     world2local = shape.world2local
-    self.assertEqual(world2local.shape, (32, 4, 4))
+    self.assertEqual(world2local.shape, (48, 4, 4))
     sif_a_path = os.path.join(TEST_DATA_DIR, 'b7eefc4c25dd9e49238581dd5a8af82c.txt')
     sif_b_path = os.path.join(TEST_DATA_DIR, 'b831f60f211435df5bbc861d0124304c.txt') 
     shape = sif.Sif.from_file([sif_a_path, sif_b_path])
-    self.assertEqual(world2local.shape, (2, 32, 4, 4))
+    self.assertEqual(shape.world2local.shape, (2, 48, 4, 4))
     
     
 if __name__ == '__main__':

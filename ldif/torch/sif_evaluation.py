@@ -51,7 +51,8 @@ def roll_pitch_yaw_to_rotation_matrices(roll_pitch_yaw):
        sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx,
        -sy, cy * sx, cy * cx], dim=-1)
   # pyformat: enable
-  shape = torch.cat([roll_pitch_yaw.shape[:-1], [3, 3]], axis=0)
+  #shape = torch.cat([roll_pitch_yaw.shape[:-1], [3, 3]], axis=0)
+  shape = list(roll_pitch_yaw.shape[:-1]) + [3, 3]
   rotation = torch.reshape(rotation, shape)
   return rotation
 
@@ -68,7 +69,7 @@ def decode_covariance_roll_pitch_yaw(radii, rotations, invert=False):
      matrices corresponding to the input radius vectors.
   """
   d = 1.0 / (radii + DIV_EPSILON) if invert else radii
-  diag = torch.diag(d)
+  diag = torch.diag_embed(d)
   rotation = roll_pitch_yaw_to_rotation_matrices(rotations)
   return torch.matmul(torch.matmul(rotation, diag), torch.transpose(rotation, -2, -1))
 
@@ -94,7 +95,7 @@ def sample_cov_bf(center, radii, rotations, samples):
   # Decode 6D radius vectors into inverse covariance matrices, then extract
   # unique elements.
   inv_cov = decode_covariance_roll_pitch_yaw(radii, rotations, invert=True)
-  shape = torch.concat([inv_cov.shape[:-2], [1, 9]], dim=0)
+  shape = list(inv_cov.shape[:-2]) + [1, 9]
   inv_cov = torch.reshape(inv_cov, shape)
   c00, c01, c02, _, c11, c12, _, _, c22 = torch.unbind(inv_cov, dim=-1)
   # Compute function value.
@@ -148,38 +149,38 @@ def homogenize(m):
   """Adds homogeneous coordinates to a [..., N,N] matrix, returning [..., N+1, N+1]."""
   assert m.shape[-1] == m.shape[-2]  # Must be square
   n = m.shape[-1]
-  eye_n_plus_1 = torch.eye(n+1).expand(m.shape[:-2] + [-1, -1])
-  extra_col = eye_n_plus_1[..., :, -1:]
+  eye_n_plus_1 = torch.eye(n+1).cuda().expand(list(m.shape[:-2]) + [-1, -1])
+  extra_col = eye_n_plus_1[..., :-1, -1:]
   extra_row = eye_n_plus_1[..., -1:, :]
   including_col = torch.cat([m, extra_col], dim=-1)
   return torch.cat([including_col, extra_row], dim=-2)
 
 
 def compute_world2local(centers, radii, rotations):
-"""Computes a transformation to the local element frames for encoding."""
-# We assume the center is an XYZ position for this transformation:
-# TODO(kgenova) Update this transformation to account for rotation.
-assert len(centers.shape) == 3
-batch_size, element_count = center.shape[:2]
-
-eye_3x3 = torch.eye(3).cuda().expand([batch_size, element_count, -1, -1])
-eye_4x4 = torch.eye(4).cuda().expand([batch_size, element_count, -1, -1])
-
-# Centering transform
-# ones = torch.ones([batch_size, element_count, 1, 1])
-centers = torch.reshape(centers,
-                    [batch_size, element_count, 3, 1])
-tx = torch.cat([eye_3x3, -centers], dim=-1)
-tx = torch.cat([tx, eye_4x4[..., 3:4, :]], dim=-2)  # Append last row
-
-# Compute the inverse rotation:
-rotation = torch.inverse(roll_pitch_yaw_to_rotation_matrices(rotations))
-assert rotation.shape == (batch_size, element_count, 3, 3)
-
-# Compute a scale transformation:
-diag = 1.0 / (torch.sqrt(radii + 1e-8) + 1e-8)
-scale = torch.diag(diag)
-
-# Apply both transformations and return the transformed points.
-tx3x3 = torch.matmul(scale, rotation)
-return torch.matmul(homogenize(tx3x3), tx)
+  """Computes a transformation to the local element frames for encoding."""
+  # We assume the center is an XYZ position for this transformation:
+  # TODO(kgenova) Update this transformation to account for rotation.
+  assert len(centers.shape) == 3
+  batch_size, element_count = centers.shape[:2]
+  
+  eye_3x3 = torch.eye(3).cuda().expand([batch_size, element_count, -1, -1])
+  eye_4x4 = torch.eye(4).cuda().expand([batch_size, element_count, -1, -1])
+  
+  # Centering transform
+  # ones = torch.ones([batch_size, element_count, 1, 1])
+  centers = torch.reshape(centers,
+                      [batch_size, element_count, 3, 1])
+  tx = torch.cat([eye_3x3, -centers], dim=-1)
+  tx = torch.cat([tx, eye_4x4[..., 3:4, :]], dim=-2)  # Append last row
+  
+  # Compute the inverse rotation:
+  rotation = torch.inverse(roll_pitch_yaw_to_rotation_matrices(rotations))
+  assert rotation.shape == (batch_size, element_count, 3, 3)
+  
+  # Compute a scale transformation:
+  diag = 1.0 / (torch.sqrt(radii + 1e-8) + 1e-8)
+  scale = torch.diag_embed(diag)
+  
+  # Apply both transformations and return the transformed points.
+  tx3x3 = torch.matmul(scale, rotation)
+  return torch.matmul(homogenize(tx3x3), tx)
