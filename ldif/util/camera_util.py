@@ -14,6 +14,7 @@
 # Lint as: python3
 """Camera utilities, pulled from diffren."""
 
+import numpy as np
 import tensorflow as tf
 
 
@@ -81,6 +82,57 @@ def look_at(eye, center, world_up):
       [view_translation,
        tf.reshape(w_column, [batch_size, 1, 4])], 1)
   camera_matrices = tf.matmul(view_rotation, view_translation)
+  return camera_matrices
+
+
+def look_at_np(eye, center, world_up):
+  """Computes camera viewing matrices.
+
+  Functionality mimes gluLookAt (third_party/GL/glu/include/GLU/glu.h).
+
+  Args:
+    eye: 2-D float32 numpy array (or convertible value) with shape
+      [batch_size, 3] containing the XYZ world space position of the camera.
+    center: 2-D float32 array (or convertible value) with shape [batch_size, 3]
+      containing a position along the center of the camera's gaze.
+    world_up: 2-D float32 array (or convertible value) with shape [batch_size,
+      3] specifying the world's up direction; the output camera will have no
+      tilt with respect to this direction.
+
+  Returns:
+    A [batch_size, 4, 4] numpy array containing a right-handed camera
+    extrinsics matrix that maps points from world space to points in eye space.
+  """
+  batch_size = center.shape[0]
+
+  vector_degeneracy_cutoff = 1e-6
+  forward = center - eye
+  forward_norm = np.linalg.norm(forward, ord=2, axis=1, keepdims=True)
+  assert forward_norm >= vector_degeneracy_cutoff
+  forward = np.divide(forward, forward_norm)
+
+  to_side = np.cross(forward, world_up)
+  to_side_norm = np.linalg.norm(to_side, ord=2, axis=1, keepdims=True)
+  assert to_side_norm >= vector_degeneracy_cutoff
+  to_side = np.divide(to_side, to_side_norm)
+  cam_up = np.cross(to_side, forward)
+
+  w_column = np.array(
+      batch_size * [[0., 0., 0., 1.]], dtype=np.float32)  # [batch_size, 4]
+  w_column = np.reshape(w_column, [batch_size, 4, 1])
+  view_rotation = np.stack(
+      [to_side, cam_up, -forward,
+       np.zeros_like(to_side, dtype=np.float32)],
+      axis=1)  # [batch_size, 4, 3] matrix
+  view_rotation = np.concatenate([view_rotation, w_column],
+                                 axis=2)  # [batch_size, 4, 4]
+  identity_singleton = np.eye(3, dtype=np.float32)[np.newaxis, ...]
+  identity_batch = np.tile(identity_singleton, [batch_size, 1, 1])
+  view_translation = np.concatenate([identity_batch, np.expand_dims(-eye, 2)], 2)
+  view_translation = np.concatenate(
+      [view_translation,
+       np.reshape(w_column, [batch_size, 1, 4])], 1)
+  camera_matrices = np.matmul(view_rotation, view_translation)
   return camera_matrices
 
 
