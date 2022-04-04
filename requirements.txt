@@ -14,4 +14,4 @@ tabulate==0.8.3
 tensorflow-gpu==1.15.2; sys_platform == 'linux'
 tensorflow==1.15.2; sys_platform == 'darwin'
 apache_beam==2.22.0
-Pillow==7.1.2
+Pillow==9.0.1
