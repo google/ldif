@@ -11,7 +11,7 @@ tensorflow_hub==0.8.0
 joblib==0.14.1
 pandas==1.0.3
 tabulate==0.8.3
-tensorflow-gpu==1.15.2; sys_platform == 'linux'
+tensorflow-gpu==2.6.4; sys_platform == 'linux'
 tensorflow==1.15.2; sys_platform == 'darwin'
 apache_beam==2.22.0
 Pillow==7.1.2
