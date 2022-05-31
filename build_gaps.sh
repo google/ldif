@@ -34,7 +34,7 @@ then
   echo "On MacOS, GL dependencies should have shipped and OSMesa support is disabled."
 else
   # On linux, the packages need to be installed.
-  sudo apt-get install mesa-common-dev libglu1-mesa-dev libosmesa6-dev libxi-dev libgl1-mesa-dev
+  sudo apt-get install mesa-common-dev libglu1-mesa-dev libosmesa6-dev libxi-dev libgl1-mesa-dev libglew-dev
   # For some reason on Ubuntu there can be a broken link from /usr/lib/x86_64-linux-gnu/libGL.so
   # to libGL.so.1.2.0 in the same directory, which does not exist. However libgl1-mesa-glx should
   # provide libGL.so.1.2.0. Reinstalling libgl1-mesa-glx results in libGL.so.1.2.0 correctly
