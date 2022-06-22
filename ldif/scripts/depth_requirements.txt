@@ -21,7 +21,7 @@ mkl-random==1.1.1
 mkl-service==2.3.0
 moderngl==5.6.4
 networkx==2.4
-numpy==1.18.1
+numpy==1.22.0
 opt-einsum==3.1.0
 pandas==1.0.4
 Pillow==7.1.2
