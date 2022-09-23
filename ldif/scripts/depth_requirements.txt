@@ -25,7 +25,7 @@ numpy==1.18.1
 opt-einsum==3.1.0
 pandas==1.0.4
 Pillow==7.1.2
-protobuf==3.12.3
+protobuf==3.18.3
 pyglet==1.5.23
 PyOpenGL==3.1.0
 pyparsing==3.0.7
