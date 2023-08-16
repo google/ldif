@@ -1,6 +1,6 @@
 absl-py==0.9.0
 astor==0.8.0
-certifi==2020.4.5.2
+certifi==2023.7.22
 cycler==0.11.0
 decorator==4.4.2
 freetype-py==2.2.0
