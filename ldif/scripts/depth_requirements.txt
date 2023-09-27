@@ -34,7 +34,7 @@ python-dateutil==2.8.2
 pytz==2020.1
 PyWavelets==1.1.1
 scikit-image==0.17.2
-scipy==1.4.1
+scipy==1.10.0
 six==1.15.0
 tabulate==0.8.7
 tensorboard==1.15.0
