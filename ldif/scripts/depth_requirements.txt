@@ -46,5 +46,5 @@ tifffile==2020.6.3
 tqdm==4.46.1
 trimesh==3.6.43
 webencodings==0.5.1
-Werkzeug==0.16.1
+Werkzeug==3.0.1
 wrapt==1.12.1
